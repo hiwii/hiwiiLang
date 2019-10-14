@@ -1,0 +1,274 @@
+<html>
+<head>
+	<meta http-equiv=Content-Type content="text/html;charset=utf-8"/>
+	<title>hiwii语言</title>
+</head>
+<body>
+<a href="index.jsp">hiwii系统和hiwii语言介绍</a>
+<a href="syntax.html">hiwii语言语法</a>
+<b>hiwii语言教程</b>
+<a href="/hiwii/">hiwii语言会话</a>
+<hr/>
+<p>1 系统计算</p>
+<p>系统计算从返回结果来看，分为两种，返回对象的计算和返回认识的计算。从表达式分类，可以分为常量和已定义的函数计算。</p>
+<p>1.1 Character</p>
+<p>数字字符、英文字符、其它字符和所有一元符号都是字符，但二元分隔符和操作符不是字符。</p>
+<p>'a','1','汉','+'都是字符。</p>
+<p>每个字符表达式都是计算表达式，可以在任何计算表达式上下文中使用。比如：</p>
+<p>ask('s')    //结果's'</p>
+<p>ask('中')   //结果'中'</p>
+<p>1.1.1 判断</p>
+<p>字符支持六种比较判断(=,!=,>,<,>=,<=)</p>
+<p>比如：</p>
+<p>whether('a' > 'b')  //No</p>
+<p>whetherNot('c' > 'd') //Yes</p>
+<p></p>
+<p>1.2 Number</p>
+<p>语法一章中描述了Number的几种表达式，这里不再描述。</p>
+<p>在java/C等语言中，数的表示方法有int/short/long/double等表示方法，这些表示方法是根据number在内存中占用的字节数表示的，hiwii语言不再根据内存占用进行数的分类，一个数如何在内存中表示由系统判断后决定，用户不需要关心。</p>
+<p>hiwii语言中有四种基本数表达式，分别是整数、小数、分数、和科学计数。此前大部分语言都不支持分数，但作为常用的数表示方法，分数应该成为hiwii语言的基本数。"/"只有当左右两侧都是整数时，作为分数分隔符，否则作为除法计算符解释。</p>
+<p>hiwii语言中数的计算与多数语言不同，在大多数语言中，数的计算都是有精度的，比如：2/3=0.6667（精度=4）。而hiwii语言在未指定计算精度前，所有的计算是精确计算的。这也是分数作为hiwii语言中基本表达式的一个重要原因。这样2/3就不需要换算成小数，直接表示为分数就可以了。</p>
+<p>1.2.1 加减乘除计算</p>
+<p>表达式如下：</p>
+<p>Number1+Number2</p>
+<p>Number1-Number2</p>
+<p>Number1*Number2</p>
+<p>Number1/Number2 //除法计算</p>
+<p>计算结果默认以精确表示，因此当计算结果不能以整数表示，则以小数表示。如果不能以小数表示，则以分数表示。在整数除法计算中，如果结果不为整数，则以分数表示计算结果，比如：3 / 2 = 3/2</p>
+<p>1.2.2 一元计算</p>
+<p>'+'和'-'可以作为一元计算符出现在表达式左侧，比如：</p>
+<p>ask(- 3)  //结果=-3</p>
+<p>一元计算符可以联系出现，计算顺序从左至右，</p>
+<p>比如：- - 3 = -(-3)</p>
+<p>1.2.3 数的比较</p>
+<p>支持六种比较判断(=,!=,>,<,>=,<=)</p>
+<p>比如：whether(3>2)</p>
+<p>whetherNot(3.5 > 10/3)</p>
+<p>1.2.4 数位</p>
+<p>对于整数和小数，可以获得或更改数的数位。数位用digitAt(int)表示，该数位表示10的n次方。</p>
+<p>如：</p>
+<p>ask(123.digitAt(0)    //结果'3'</p>
+<p>ask(123.digitAt(1)    //结果'2'</p>
+<p>ask(123.digitAt(2)    //结果'1'</p>
+<p>ask(123.digitAt(3)    //结果'0'</p>
+<p>ask(0.123.digitAt(-1)    //结果'1'</p>
+<p>ask(0.123.digitAt(-2)    //结果'2'</p>
+<p>ask(0.123.digitAt(-3)    //结果'3'</p>
+<p>ask(0.123.digitAt(-4)    //结果'0'</p>
+<p></p>
+<p>2	字符串</p>
+<p>《java编程思想》字符串一章的第一句话：“可以证明，字符串是计算机程序设计中最常见的行为。”</p>
+<p>符号的有序组合形成表达式，每个表达式表示一个对象或认识。而表达式本身正是字符串的子集。字符串表达式是特殊的表达式</p>
+<p>2.1	字符串计算</p>
+<p>2.1.1	字符串长度</p>
+<p>string.length</p>
+<p>注意:与java不同，length没有参数，也没有()</p>
+<p>使用方法：</p>
+<p>ask(“abc”.length)   //=3</p>
+<p>2.1.2	字符串相加</p>
+<p>string1+string2</p>
+<p>如："abc"+"def" //="abcdef"</p>
+<p>在会话状态：</p>
+<p>ask("abc"+"def")  //="abcdef"</p>
+<p>2.1.3	子字符串</p>
+<p>substring(start,end)</p>
+<p>与java等取子字符串函数不同，hiwii取子字符串是包括end字符串。而在java中，substring函数是不包括位置end的字符的。</p>
+<p>比如，java中：</p>
+<p>String a = "abcde".substring(0,2) //结果是"ab"</p>
+<p>而hwii中</p>
+<p>String a = "abcde".substring(0,2) //结果是"abc"</p>
+<p>做这样改动的目的是：java中如果要取start直到字符串结束的substring，end取值从逻辑上已经超出了字符串长度，如：</p>
+<p>String tail = "abcde".substring(2,5) //结果是"cde"。但最后一个字符'e'的位置是4。由于java的substring不包括end字符，因此必须让end=5才能返回要求的结果。</p>
+<p>允许end=5并没有什么，但是java中，如果要取一个char，这样的位置就会报错。</p>
+<p>char tail = "abcde".charAt(5)  //系统抛出异常</p>
+<p>2.1.4	截取子串</p>
+<p>格式：cut(position,len,Boolean forward)</p>
+<p>表示向前或向后获得一个子串，截取长度为len。</p>
+<p>forward=true向前，false向后。forward参数可以省略，默认是true。</p>
+<p>这个和substring的不同在于，substring的参数是开始和结束位置，而cut参数是开始位置和截取长度，而且cut可以选择向前或向后截取。</p>
+<p>2.1.5	取字符</p>
+<p>格式：string.charAt(pos)</p>
+<p>pos必须是大于等于0的整数。</p>
+<p>使用方法:</p>
+<p>ask(“abc”.charAt(0))  //='a'</p>
+<p>2.1.6	to表达式</p>
+<p>string.toExpression</p>
+<p>如：</p>
+<p>“3".toExpression //结果是integer 3</p>
+<p>"3" + "4" //结果是"34"</p>
+<p>"3".toExpression + "4".toExpression</p>
+<p>"3+4".toExpression  //结果是 3 + 4,不是7，因为没有进行计算</p>
+<p>lambda(,"3+4".toExpression).run()</p>
+<p>2.2	字符串比较</p>
+<p>字符串支持六种比较判断(=,!=,>,<,>=,<=)</p>
+<p>2.3	字符串操作</p>
+<p>java中认为，字符串是不可变的。</p>
+<p>2.3.1	reverse</p>
+<p>string.reverse</p>
+<p></p>
+<p>3	正则表达式</p>
+<p>正则表达式与java正则表达式有较大差别。</p>
+<p>传统正则表达式来源于perl，是一串特别定义的字符串组成。如果要善于使用这些reg，必须牢牢记住很多特殊字符的使用，比如常见的'?','+','*'都是这些特殊字符。</p>
+<p>按照hiwii语言原则，除了分隔符外，所有计算操作符必然与一个函数一一对应。因此，一组有效好记的函数应该是正则表达式的基础，而不是超过一页的符号使用说明和规则。</p>
+<p>传统正则表达式的匹配原则一般是默认是否匹配给定的整个字符串，即是否匹配是和字符串相关的，或者有些书认为的，匹配是从右向左匹配的。</p>
+<p>而hiwii语言中，正则表达式是一组字符串集合的共同特征，一个字符串是否与一个正则表达式匹配的含义是：一个字符串是否属于这个正则表达式表示的字符串集合。</p>
+<p>3.1	特殊正则表达式</p>
+<p>包括：anyString/operator/line/character/word/digit/number/</p>
+<p>hiwii语言使用的表达式也是一组特殊正则表达式，包括：identifier/function/ParenExpression/BracketExpression/Block/subjectOperation/subjectVerb/subjectPositive/subjectNegative都是特殊正则表达式。</p>
+<p>3.2	简单正则表达式</p>
+<p>reg(String)</p>
+<p>简单正则表达式表示一个精确匹配。</p>
+<p>3.3	选择正则表达式</p>
+<p>alternate(reg1，reg2...)</p>
+<p>表示可选项只要有一项匹配，则</p>
+<p>3.4	重复正则表达式</p>
+<p>重复正则表达式又分为以下几种：</p>
+<p>3.4.1	恰好n次重复</p>
+<p>repeatNTimes(reg,n)</p>
+<p>3.4.2	贪婪n次重复</p>
+<p>repeatNGreedy(reg,n)</p>
+<p>3.4.3	懒惰n次重复</p>
+<p>repeatNReluctant(reg,n)</p>
+<p>3.4.4	贪婪区间重复</p>
+<p>repeatRangeGreedy(reg,min,max)</p>
+<p></p>
+<p>String(abababab) match repeat("ab",2,3)</p>
+<p>满足部分是String(ababab)</p>
+<p>表示从n1到n2(n1<=n2)重复次数。如果n1省略，默认值为0。如果n2省略，默认值为无穷大。</p>
+<p>3.5	复合正则表达式</p>
+<p>compound(reg1,reg2……)</p>
+<p>3.6	否定正则表达式</p>
+<p>regNot(</p>
+<p>简单、选择、重复、复合、嵌套正则表达式可以返回一个字符串的匹配部分，而否定正则表达式不能返回匹配部分。</p>
+<p>3.7	字符串和正则表达式</p>
+<p>3.7.1	guide</p>
+<p>boolean string$guide(reg,int position，boolean forward)</p>
+<p>forward默认为true。表示能否向前或向后获得匹配</p>
+<p>//返回字符串开始直到匹配结束，如果greedy则匹配直到不能匹配为止，reluctant表达式匹配一旦符合，则返回匹配结束地址。</p>
+<p>3.7.2	count计算</p>
+<p>int string.count(reg,int position,Boolean forward)</p>
+<p>forward默认为true。表示能否向前或向后获得匹配.</p>
+<p>返回向前或向后匹配子串的长度，如果没有获得匹配，则返回值为-1。</p>
+<p>3.7.3	matches</p>
+<p>boolean string$matches(reg)</p>
+<p>表示字符串是否匹配正则表达式</p>
+<p>3.7.4	locate</p>
+<p>int n = string.locate(pos,reg,forward)</p>
+<p>从position位置开始向后匹配。</p>
+<p></p>
+<p>4	程序执行</p>
+<p>计算、判断和操作往往不是一个操作能够完成的，一般需要顺序的执行多个操作才能完成一次计算、判断和操作。这种顺序执行的过程就称作程序执行。</p>
+<p>block的顺序执行即传统意义上的程序执行。程序分为操作、计算和判断。操作的执行可以由计算和判断支持，但计算和判断的执行不能调用任何操作。</p>
+<p>4.1	分支</p>
+<p>系统定义了三种基本分支表达式：</p>
+<p>分支表达式可以单独使用，也可以作为操作、判断和计算表达式使用。单独使用即作为block中的一个表达式单独出现，如：</p>
+<p>if(3>2,break)</p>
+<p>作为操作表达式：</p>
+<p>对象#分支表达式；如：车#if(状态正常,启动)</p>
+<p>作为计算表达式：</p>
+<p>对象.分支表达式；如：车.if(张三健康, 张三, 李四)//选择车的司机</p>
+<p>作为计算表达式：</p>
+<p>对象$分支表达式；如：车$if(没有故障灯亮,正常,异常)</p>
+<p>对象!分支表达式；</p>
+<p>4.1.1	if分支</p>
+<p>if(condition,expression[,expression])</p>
+<p>if分支表达式由2个或三个参数构成，第一个参数用于表示条件，第二个表示表示执行表达式，第三个表达式是可选的，表示else表达式，即条件不满足的情况下执行的表达式。</p>
+<p>比如：if(3>2, command1, commandElse)</p>
+<p>4.1.2	choose分支</p>
+<p>choose(case(cond1):expression1,case(cond2):expression2....else:expression)</p>
+<p>这是一个多分支结构，同样以函数形式为表达式。</p>
+<p>每个case表达式中的参数表示判断条件，其后表示执行表示。</p>
+<p>判断按顺序依次进行，如果满足条件，则执行对应的表达式，然后退出。</p>
+<p>如：</p>
+<p>choose(case(i>3):echo("abcd"),</p>
+<p>	case(i=3):echo("abc"),</p>
+<p>	else:echo("ab")</p>
+<p>)</p>
+<p>4.1.3	switch分支</p>
+<p>switch(operation, case(result1):expression, case(result1):expression....else:expression)</p>
+<p>与choose一样表示多分支结构，与choose不同的是，第一个参数表示一个计算表达式，case中可以有多个表达式。执行与choose分支一样，遇到满足条件的case语句则执行，然后退出分支执行。如：</p>
+<p>switch(i,</p>
+<p>	case(0,1,2):echo("ab"),</p>
+<p>	case(3):echo("abc"),</p>
+<p>	else:echo("abcd")</p>
+<p>)</p>
+<p>4.2	循环</p>
+<p>4.2.1	while循环</p>
+<p>while(condition,Expression);</p>
+<p>4.2.2	容器迭代</p>
+<p>each(i:collection,Expression)</p>
+<p>collection必须是List或有限集合(Set)</p>
+<p>4.2.3	for循环</p>
+<p>for(var1=initV,condition,iteration，expression)</p>
+<p>初始表达式：空|赋值表达式|[多个赋值表达式]</p>
+<p>迭代执行部分只运行修改初始定义的变量。</p>
+<p>这个循环语句继承了java、C/C++的特点，但增加了一些限制。</p>
+<p>可以使用空条件循环：</p>
+<p>for(,,,statement);//这条语句表示不断循环，直到遇到break语句退出。</p>
+<p>它与下面语句相同。</p>
+<p>while(true,statement)</p>
+<p>hiwii程序执行体不能执行循环变量的修改操作，循环变量的操作只能在iteration部分完成,而且循环变量的操作部分不能修改外部变量。</p>
+<p>下面是一个java的例子。</p>
+<p>for(int i=0;i<10;){</p>
+<p>i++;//内部修改变量值在java中是允许的。而hiwii不允许</p>
+<p>}</p>
+<p>另一个java例子：</p>
+<p>int a=0;</p>
+<p>for(;a<10;a++){</p>
+<p>//迭代执行部分运行修改外部迭代变量，java中允许。hiwii不允许</p>
+<p>			</p>
+<p>		}</p>
+<p>4.3	程序控制语句</p>
+<p>4.3.1	break语句</p>
+<p>与java语言类似，用于中断循环。只能用于循环体中，否则系统会报错。</p>
+<p>如：</p>
+<p>{</p>
+<p>	break;  //系统报错，break没有处于循环体中</p>
+<p>}</p>
+<p>4.3.2	skip语句</p>
+<p>skip语句表示结束当前模块的执行。</p>
+<p>在java、c等大多数语言中，并没有结束模块执行的语句。在java、c中，有continue语句，而continue语句只用于循环中，表示结束当前循环进入下一循环。然而java、c既然提供了模块执行的方式，却没有提供提前退出模块的方法，而必须完全执行模块中的每一条指令，这会给用户带来一定的迷惑。</p>
+<p>现在有了skip语句，那么当在循环中执行模块时，skip就可以完全取代continue语句。在循环中执行模块，表示循环建立模块执行环境，并在本次循环结束后退出模块执行环境。</p>
+<p>skip语句必须在模块中执行，如果直接在会话中执行，系统会报错，如下：</p>
+<p>>skip  //系统返回错误</p>
+<p>> {ask(1);skip;ask(2);} //只执行skip之前的指令</p>
+<p>1</p>
+<p>4.3.3	return</p>
+<p>用于Action程序中，表示结束action。</p>
+<p>4.3.4	return(expression)</p>
+<p>这个语句和return语句的使用完全不同。return语句用于action Block中，该语句用于计算中，表示结束计算并返回计算结果。</p>
+<p>4.3.5	decide(expression)</p>
+<p>参数是判断表达式，判定返回yes或no。</p>
+<p>4.3.6	throw(Exception)</p>
+<p>表示结束当前程序，并抛出异常。</p>
+<p>5.陈述句</p>
+<p>陈述句是人类语言中最常使用的语句类型，在人类浩如烟海的书籍中，绝大多数的语句都是陈述句。陈述句的作用是传递认识，人类大部分的知识就是通过陈述句一代代传承了下来。下面来看一看，hiwii语言中陈述句。</p>
+<p>5.1，定义语句</p>
+<p>格式：define(父定义:子定义名=[extend|decorate()|select()])</p>
+<p>比如：define(object:Person=extend) //表示定义了一个概念：Person，其父定义是object</p>
+<p>注意：object和cognition是hiwii系统中的两个根定义。</p>
+<p>5.2，be语句</p>
+<p>格式：be(定义名)</p>
+<p>be语句表示确认一个对象的存在，如：</p>
+<p>be(Person) //表示确认一个Person的存在</p>
+<p>在我们语言中，我们经常会有这样的陈述句：“有一个姑娘叫小芳”，“有一个小白兔在森林里”。hiwii语言中be语句和这类陈述句是一样的。</p>
+<p>5.3，refer语句</p>
+<p>格式：refer(定义名:表达式[=value])</p>
+<p>如：refer(String:str="abc")  //表示定义了一个变量</p>
+<p>5.4,assign语句</p>
+<p>格式：assign(id=expr1[,id2=expr2...])</p>
+<p>如：在前面定义过变量str后</p>
+<p>assign(str="cde")</p>
+<p>5.5,declare语句</p>
+<p>格式：declare([calculation|decision|operation]:id/function=expression)</p>
+<p>declare语句是基于已存在的计算表达式、判断表达式和操作表达式，生成新的计算表达式、判断表达式和操作表达式。如：</p>
+<p>declare(calculation:f(x)=x+1)  //定义了一个新的计算表达式f(x)，这是在数学课本中最常见的函数定义。</p>
+<p>定义过f(x)后，即可以作为计算表达式调用</p>
+<p>如：ask(f(3))  //结果是4</p>
+<p></p>
+<p>注：由于近期工作有些忙，再加上有些累了(找个借口)，因此陈述句部分除了declare语句可以测试外，其它语句暂时无法测试，请原谅。我将尽快补上。</p>
+
+<hr/>
+<p>欢迎关注我的微博：hiwiinet。我的微信qq号：332700461。我的博客：hiwiinet.blog.163.com</p>
+
+</body>

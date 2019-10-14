@@ -1,0 +1,19 @@
+﻿<html>
+<head></head>
+<body>
+<a href="/index.jsp">hiwii系统和hiwii语言介绍</a>
+<b>hiwii语言会话</b>
+<hr/>
+<form action="/hiwii/" method="post">
+输入命令:<textarea rows=10 cols= 40 name="username"></textarea><br/>
+<input type="reset" value="重置"/>
+<input type="submit" value="提交"/>
+</form>
+例如：输入ask[2+3]，点提交，系统会返回结果5。<br/>
+例如：输入whether[3.5 > 2]，点提交，系统会返回结果true。
+<h1>result:</h1>
+<h3>6</h3>
+<br/><hr/>
+<p>欢迎关注我的微博：hiwiinet。我的微信qq号：332700461。我的博客：hiwiinet.blog.163.com</p>
+</body>
+</html>

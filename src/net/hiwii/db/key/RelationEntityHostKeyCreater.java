@@ -1,0 +1,34 @@
+package net.hiwii.db.key;
+
+import java.io.UnsupportedEncodingException;
+
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.SecondaryDatabase;
+import com.sleepycat.je.SecondaryKeyCreator;
+
+/**
+ * EntityHost key:instanceId + "@" + hostId, value:hostId
+ * index:key:hostId
+ * @author hiwii
+ *
+ */
+public class RelationEntityHostKeyCreater implements SecondaryKeyCreator {
+
+	@Override
+	public boolean createSecondaryKey(SecondaryDatabase arg0, 
+			DatabaseEntry key, DatabaseEntry data, DatabaseEntry result) {
+		try {
+			String str = new String(key.getData(), "UTF-8");
+			int pos = str.indexOf('@');
+			if(pos > 0){
+				result.setData(str.substring(pos + 1).getBytes("UTF-8"));
+				return true;
+			}else{
+				return false;
+			}
+		} catch (UnsupportedEncodingException e) {
+			return false;
+		}
+	}
+
+}

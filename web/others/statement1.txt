@@ -1,0 +1,26 @@
+<p>5.陈述句</p>
+<p>陈述句是人类语言中最常使用的语句类型，在人类浩如烟海的书籍中，绝大多数的语句都是陈述句。陈述句的作用是传递认识，人类大部分的知识就是通过陈述句一代代传承了下来。下面来看一看，hiwii语言中陈述句。</p>
+<p>5.1，定义语句</p>
+<p>格式：define(父定义:子定义名=[extend|decorate()|select()])</p>
+<p>比如：define(object:Person=extend) //表示定义了一个概念：Person，其父定义是object</p>
+<p>注意：object和cognition是hiwii系统中的两个根定义。</p>
+<p>5.2，be语句</p>
+<p>格式：be(定义名)</p>
+<p>be语句表示确认一个对象的存在，如：</p>
+<p>be(Person) //表示确认一个Person的存在</p>
+<p>在我们语言中，我们经常会有这样的陈述句：“有一个姑娘叫小芳”，“有一个小白兔在森林里”。hiwii语言中be语句和这类陈述句是一样的。</p>
+<p>5.3，refer语句</p>
+<p>格式：refer(定义名:表达式[=value])</p>
+<p>如：refer(String:str="abc")  //表示定义了一个变量</p>
+<p>5.4,assign语句</p>
+<p>格式：assign(id=expr1[,id2=expr2...])</p>
+<p>如：在前面定义过变量str后</p>
+<p>assign(str="cde")</p>
+<p>5.5,declare语句</p>
+<p>格式：declare([calculation|decision|operation]:id/function=expression)</p>
+<p>declare语句是基于已存在的计算表达式、判断表达式和操作表达式，生成新的计算表达式、判断表达式和操作表达式。如：</p>
+<p>declare(calculation:f(x)=x+1)  //定义了一个新的计算表达式f(x)，这是在数学课本中最常见的函数定义。</p>
+<p>定义过f(x)后，即可以作为计算表达式调用</p>
+<p>如：ask(f(3))  //结果是4</p>
+<p></p>
+<p>注：由于近期工作有些忙，再加上有些累了，因此陈述句部分除了declare语句可以测试外，其它语句暂时无法测试，请原谅。我将尽快补上。</p>

@@ -1,0 +1,13 @@
+陈述句是人类语言中最常使用的语句类型，在人类浩如烟海的书籍中，绝大多数的语句都是陈述句。陈述句的作用是传递认识，人类大部分的知识就是通过陈述句一代代传承了下来。下面来看一看，hiwii语言中陈述句。
+1，定义语句
+格式：define(父定义:子定义名=[extend|decorate()|select()])
+比如：define(object:Person=extend) //表示定义了一个概念：Person，其父定义是object
+注意：object和cognition是hiwii系统中的两个根定义。
+2，perceive语句
+格式：thereis(定义名)
+perceive语句表示确认一个对象的存在，如：
+perceive(Person) //表示确认一个Person的存在
+在我们语言中，我们经常会有这样的陈述句：“有一个姑娘叫小芳”，“有一个小白兔在森林里”。hiwii语言中perceive语句和这类陈述句是一样的。
+3，refer语句
+格式：refer(定义名:表达式[=value])
+这里的表达式可以是以下选项：1，identifier。2，数组。
