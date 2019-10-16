@@ -1,0 +1,7 @@
+project/bin
+project/dat
+*.class
+*.XLS
+*.DOC
+*.PPT
+WeixinserverConfig.txt
