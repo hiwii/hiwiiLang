@@ -2981,11 +2981,11 @@ public class HiwiiContext extends Entity {
 				return new HiwiiException();
 			}
 			return newVariable(args.get(0));
-		}else if(name.equals("vars") || name.equals("variables")){
-			if(args.size() != 1){
+		}else if(name.equals("refer")){
+			if(args.size() != 2){
 				return new HiwiiException();
 			}
-			return newVariable(args.get(0));
+			return doRefer(args.get(0), args.get(1));
 		}else if(name.equals("boolean")){
 			if(args.size() != 1){
 				return new HiwiiException();
@@ -6767,6 +6767,24 @@ public class HiwiiContext extends Entity {
 				txn = null;
 			}
 		}
+		return new NormalEnd();
+	}
+	
+	public Expression doRefer(Expression left, Expression right){
+		if(!(left instanceof IdentifierExpression)) {
+			return new HiwiiException();
+		}
+		IdentifierExpression ie = (IdentifierExpression) left;
+		String name = ie.getName();
+
+		if(refers.containsKey(name)){
+			return new HiwiiException();
+		}
+		Entity result = doCalculation(right);
+		if(result == null || result instanceof HiwiiException){
+			return new HiwiiException();
+		}
+		refers.put(name, result);
 		return new NormalEnd();
 	}
 	
