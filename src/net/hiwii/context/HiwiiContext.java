@@ -5127,6 +5127,7 @@ public class HiwiiContext extends Entity {
 		for(Expression expr:sents){
 			if(expr instanceof IdentifierExpression) {
 				IdentifierExpression ie = (IdentifierExpression) expr;
+				Expression ret = doIdentifierAction(ie.getName());
 			}
 //			result = subject.doAction(expr);
 			result = rc.doAction(expr);
