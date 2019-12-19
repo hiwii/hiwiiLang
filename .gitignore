@@ -5,3 +5,4 @@ project/dat
 *.DOC
 *.PPT
 WeixinserverConfig.txt
+/bin/
