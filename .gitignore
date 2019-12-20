@@ -1,8 +1,7 @@
-project/bin
-project/dat
+bin
+dat
 *.class
 *.XLS
 *.DOC
 *.PPT
 WeixinserverConfig.txt
-/bin/
