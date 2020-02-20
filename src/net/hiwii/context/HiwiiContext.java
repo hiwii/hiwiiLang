@@ -4197,7 +4197,7 @@ public class HiwiiContext extends Entity {
 	
 	
 	/**
-	 * put[definition,{decorations}]
+	 * put[definition:{decorations}]
 	 * @param expr
 	 * @return
 	 */
