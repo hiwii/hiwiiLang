@@ -2942,6 +2942,14 @@ public class HiwiiContext extends Entity {
 				return doNewAction(args.get(0), args.get(1));
 			}
 			return new HiwiiException();
+		}else if(name.equals("create")){
+			if(args.size() == 1){
+				return putInstance(args.get(0));
+			}else if(args.size() == 2){
+				//put(Object, childObject)
+				return doNewAction(args.get(0), args.get(1));
+			}
+			return new HiwiiException();
 		}else if(name.equals("define")){
 			if(args.size() == 1){
 				return doDefine(args.get(0));
@@ -2977,10 +2985,14 @@ public class HiwiiContext extends Entity {
 			}
 			return doDropAction(args.get(0));
 		}else if(name.equals("var") || name.equals("variable")){
-			if(args.size() != 1){
+			if(args.size() == 1){
+				return newVariable(args.get(0));
+			}else if(args.size() == 2){
+				return newVariable(args.get(0), args.get(1));
+			}else {
 				return new HiwiiException();
 			}
-			return newVariable(args.get(0));
+			
 		}else if(name.equals("refer")){
 			if(args.size() != 2){
 				return new HiwiiException();
@@ -4197,7 +4209,7 @@ public class HiwiiContext extends Entity {
 	
 	
 	/**
-	 * put[definition:{decorations}]
+	 * put[definition,{decorations}]
 	 * @param expr
 	 * @return
 	 */
@@ -6547,6 +6559,87 @@ public class HiwiiContext extends Entity {
 		return new NormalEnd();
 	}
 	
+	public Expression newVariable(Expression expr, Expression target){
+		Variable var = new Variable();
+		
+		
+		if(expr instanceof IdentifierExpression){
+			IdentifierExpression ie = (IdentifierExpression) expr;
+			var = new Variable();
+			var.setName(ie.getName());
+			var.setValue(new NullValue());
+		}else {
+			return new HiwiiException();
+		}
+		
+
+		Definition def = null;
+		if(target instanceof IdentifierExpression){
+			IdentifierExpression ie = (IdentifierExpression)target;
+			try {
+				def = EntityUtil.proxyGetDefinition(ie.getName());
+				if(def == null){
+					return new HiwiiException();
+				}
+				
+			} catch (Exception e) {
+				return new HiwiiException();
+			}
+		}else if(target instanceof IdentifierBrace){
+			IdentifierBrace ib = (IdentifierBrace) target;
+			try {
+				def = EntityUtil.proxyGetDefinition(ib.getName());
+				if(def == null){
+					return new HiwiiException();
+				}
+			} catch (Exception e) {
+				return new HiwiiException();
+			}
+		}
+
+		var.setType(def.getName());
+		vars.put(var.getName(), var);
+//	
+//		if(bo.getOperator().equals(":=")){}else if(bo.getOperator().equals("->")){
+//			if(bo.getLeft() instanceof IdentifierExpression){
+//				IdentifierExpression ie = (IdentifierExpression) bo.getLeft();
+//				var.setName(ie.getName());
+//			}else{
+//				return new HiwiiException();
+//			}
+//
+//			Definition def = null;
+//			if(bo.getRight() instanceof IdentifierExpression){
+//				IdentifierExpression ie = (IdentifierExpression) bo.getRight();
+//				try {
+//					def = EntityUtil.proxyGetDefinition(ie.getName());
+//					if(def == null){
+//						return new HiwiiException();
+//					}
+//					var.setType(def.getName());
+//					var.setValue(new NullValue());
+//				} catch (Exception e) {
+//					return new HiwiiException();
+//				}
+//			}else if(bo.getRight() instanceof IdentifierBrace){
+//				IdentifierBrace ib = (IdentifierBrace) bo.getRight();
+//				try {
+//					def = EntityUtil.proxyGetDefinition(ib.getName());
+//					if(def == null){
+//						return new HiwiiException();
+//					}
+//					var.setType(def.getName());
+//				} catch (Exception e) {
+//					return new HiwiiException();
+//				}
+//			}
+//			vars.put(var.getName(), var);
+//		}else{
+//			return new HiwiiException();
+//		}		
+		return new NormalEnd();
+	}
+	
 	public Expression persistVariable(Expression expr){
 		Variable var = new Variable();
 		if(expr instanceof IdentifierExpression){
@@ -8517,6 +8610,15 @@ public class HiwiiContext extends Entity {
 			IdentifierExpression ie = (IdentifierExpression) expr;
 			return doDefinitionIdentifierCalculation(def, ie.getName());
 		}
+		if(expr instanceof FunctionExpression) {
+			FunctionExpression fe = (FunctionExpression) expr;
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression arg:fe.getArguments()) {
+				Entity ent = doCalculation(arg);
+				list.add(ent);
+			}
+			return doDefinitionFunctionCalculation(def, fe.getName(), list);
+		}
 		if(expr instanceof MappingExpression) {
 			MappingExpression me = (MappingExpression) expr;
 			return doDefinitionMappingCalculation(def, me.getName(), me.getArguments());
@@ -8645,6 +8747,13 @@ public class HiwiiContext extends Entity {
 		}
 		return def;
 	}
+	
+	public Entity doDefinitionFunctionCalculation(Definition def, String name, 
+			List<Entity> args) {
+		
+		return def;
+	}
+	
 	public Entity doDefinitionMappingCalculation(Definition def, String name, 
 			List<Expression> args) {
 		if(def instanceof DecoratedDefinition) {
