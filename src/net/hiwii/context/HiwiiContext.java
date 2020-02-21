@@ -2950,6 +2950,8 @@ public class HiwiiContext extends Entity {
 			}else{
 				return new HiwiiException();
 			}
+		}else if(name.equals("redefine")){
+			
 		}else if(name.equals("declare")){
 			if(args.size() == 2){
 				return doDeclare(args.get(0), args.get(1));
