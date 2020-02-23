@@ -2942,6 +2942,14 @@ public class HiwiiContext extends Entity {
 				return doNewAction(args.get(0), args.get(1));
 			}
 			return new HiwiiException();
+		}else if(name.equals("create")){
+			if(args.size() == 1){
+				return putInstance(args.get(0));
+			}else if(args.size() == 2){
+				//put(Object, childObject)
+				return doNewAction(args.get(0), args.get(1));
+			}
+			return new HiwiiException();
 		}else if(name.equals("define")){
 			if(args.size() == 1){
 				return doDefine(args.get(0));

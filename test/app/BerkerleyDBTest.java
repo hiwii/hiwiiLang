@@ -93,12 +93,11 @@ public class BerkerleyDBTest {
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		try {
 			db.open();
-			Definition def = db.getDefinitionByName("test");
+			Definition def = db.getDefinitionByName("¶©µ¥");
 			db.close();
 			if(def != null){	
-				ExtendedDefinition ed = (ExtendedDefinition) def;
 				System.out.println(def.getName());
-				System.out.println("parent" + ed.getParent());
+//				System.out.println("parent" + ed.getParent());
 			}
 		} catch (DatabaseException e) {
 			e.printStackTrace();
