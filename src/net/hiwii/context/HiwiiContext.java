@@ -5856,6 +5856,7 @@ public class HiwiiContext extends Entity {
 
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		Transaction txn = null;
+		
 		try {
 			txn = db.beginTransaction();
 			db.putDefinition(def, null);
@@ -5916,6 +5917,8 @@ public class HiwiiContext extends Entity {
 			if(expr instanceof BinaryOperation){
 				BinaryOperation bo = (BinaryOperation) expr;
 				if(bo.getOperator().equals(":")){
+					doDefinitionDefine(def, bo);
+				}else if(bo.getOperator().equals(":=")){
 					doDefinitionDefine(def, bo);
 				}
 			}

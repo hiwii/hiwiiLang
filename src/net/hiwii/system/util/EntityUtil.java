@@ -42,6 +42,7 @@ import net.hiwii.expr.date.DateValue;
 import net.hiwii.expr.date.TimeValue;
 import net.hiwii.lambda.LambdaMapping;
 import net.hiwii.message.HiwiiException;
+import net.hiwii.obj.time.TimeObject;
 import net.hiwii.prop.Property;
 import net.hiwii.prop.Variable;
 import net.hiwii.prop.VariableStore;
@@ -2008,6 +2009,10 @@ public class EntityUtil {
 			HiwiiInstance inst = (HiwiiInstance) ent;
 			rec.setType('i');
 			rec.setValue(inst.getUuid());
+		}else if(ent instanceof TimeObject){
+			TimeObject t = (TimeObject) ent;
+			rec.setType('t');
+			rec.setValue(String.valueOf(t.getTime().getTimeInMillis()));
 		}else if(ent instanceof User){
 			User user = (User) ent;
 			rec.setType('u');
@@ -2028,6 +2033,13 @@ public class EntityUtil {
 			SessionContext sc = LocalHost.getInstance().newSessionContext();
 			Entity ent = sc.doCalculation(expr);
 			return ent;
+		}else if(type == 't'){
+			TimeObject time = new TimeObject();
+			long val = Long.parseLong(str);
+			Calendar cal = Calendar.getInstance();
+			cal.setTimeInMillis(val);
+			time.setTime(cal);
+			return time;
 		}else if(type == 'u'){
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 			Entity ent = db.getUser(str, null);

@@ -35,10 +35,12 @@ import net.hiwii.view.HiwiiInstance;
  * 定义的方式：组合，extend，define，specify
  * 组合没有顺序。量词形式是一种特殊组合。
  * simpleDefinition是SystemDefinition.
+ * Definition既是一个instance，也是一个独立对象。
+ * definition的抽象特征作为instance保存，具体特征作为映射instance保存。
  * @author Administrator
  *
  */
-public class Definition extends Entity {
+public class Definition extends HiwiiInstance {
 	private String name;
 	private String parent;
 	private String signature;
@@ -59,6 +61,17 @@ public class Definition extends Entity {
 		//		setClosing(false);
 	}
 
+	
+	public HiwiiInstance getInstance() {
+		return instance;
+	}
+
+
+	public void setInstance(HiwiiInstance instance) {
+		this.instance = instance;
+	}
+
+
 	public String getName() {
 		return name;
 	}
@@ -78,14 +91,6 @@ public class Definition extends Entity {
 	}
 	public void setSignature(String signature) {
 		this.signature = signature;
-	}
-
-	public HiwiiInstance getInstance() {
-		return instance;
-	}
-
-	public void setInstance(HiwiiInstance instance) {
-		this.instance = instance;
 	}
 
 	public NavigableMap<String, EntityPart> getParts() {
