@@ -299,7 +299,7 @@ public class HiwiiInstance extends Entity {
 			if(ass == null){
 				ass = new Assignment();
 				String pkey = name + "@" + uuid;
-				Property prop = EntityUtil.proxyGetProperty(name, this.getClassName());
+				Property prop = EntityUtil.proxyGetProperty(name);//, this.getClassName());
 						//takeFromEntity(name, this);
 				if(prop == null){
 					return new HiwiiException();
