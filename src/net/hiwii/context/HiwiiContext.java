@@ -8953,9 +8953,15 @@ public class HiwiiContext extends Entity {
 			return doInstanceMappingAction(inst, me.getName(), me.getArguments());
 		}else if(expr instanceof FunctionExpression) {
 			FunctionExpression fe = (FunctionExpression) expr;
-			if(fe.getName().equals("add")) {
-				
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression exp:fe.getArguments()) {
+				Entity ent = doCalculation(inst, exp);
+				list.add(ent);
 			}
+			return inst.doFunctionAction(fe.getName(), list);
+//			if(fe.getName().equals("add")) {
+//				return inst.doFunctionAction(fe.getName(), list);
+//			}
 		}
 		return null;
 	}

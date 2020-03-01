@@ -187,8 +187,24 @@ public class HiwiiInstance extends Entity {
 	}
 	@Override
 	public Expression doFunctionAction(String name, List<Entity> args) {
-//		if(name.equals(anObject))
-		return super.doFunctionAction(name, args);
+		if(name.equals("add")) {
+			if(args.size() != 1) {
+				return new HiwiiException();
+			}
+			Entity ent = args.get(0);
+			Definition def;
+			try {
+				def = EntityUtil.proxyGetDefinition(ent.getClassName());
+			} catch (Exception e) {
+				return new HiwiiException();
+			}
+			if(def == null) {
+				return new HiwiiException();
+			}
+			entities.put(def.getSignature(), ent);
+			return new NormalEnd();
+		}
+		return null;
 	}
 	@Override
 	public Expression doFunctionDecision(String name, List<Entity> args) {
@@ -391,6 +407,17 @@ public class HiwiiInstance extends Entity {
 		str = str  + "{";
 		int last = assignments.size() - 1;
 		int i = 0;
+		str = str + "[";
+		for(Entity ent:entities.values()){
+			if(i == 0) {	
+				str = str + ent.toString();
+			}else {
+				str = str + "," + ent.toString();
+			}
+			i++;
+		}
+		str = str + "]";
+		i = 0;
 		for(Assignment ass:assignments.values()){
 			String tail = ",";
 			if(i == last){
