@@ -3962,36 +3962,6 @@ public class HiwiiContext extends Entity {
 		if(cogn.equals("Definition")){
 			return dropDefinition(right);
 			//doDefine(right);
-		}else if(cogn.equals("Calculation") || cogn.equals("Decision") || cogn.equals("Action")){
-			char tp = 0;
-			if(cogn.equals("Action")){
-				tp = 'a';
-			}else if(cogn.equals("Calculation")){
-				tp = 'c';
-			}else{
-				tp = 'd';
-			}
-			return doDeclare(tp, right);
-		}else if(cogn.equals("Calculation_intf") || cogn.equals("Decision_intf") || cogn.equals("Action_intf")){
-			char tp = 0;
-			if(cogn.equals("Action_intf")){
-				tp = 'a';
-			}else if(cogn.equals("Calculation_intf")){
-				tp = 'c';
-			}else{
-				tp = 'd';
-			}
-			return doDeclareInterface(tp, right);
-		}else if(cogn.equals("Calculation_impl") || cogn.equals("Decision_impl") || cogn.equals("Action_impl")){
-			char tp = 0;
-			if(cogn.equals("Action_impl")){
-				tp = 'a';
-			}else if(cogn.equals("Calculation_impl")){
-				tp = 'c';
-			}else{
-				tp = 'd';
-			}
-			return doDeclareImplement(tp, right);
 		}else if(cogn.equals("Symbol")){ 
 			//			return newStatus(right);
 		}else if(cogn.equals("Status")){ //ԭΪnew(Status
@@ -8637,7 +8607,7 @@ public class HiwiiContext extends Entity {
 		if(name.equals("new")) {
 			return def.doIdentifierCalculation(name);
 		}
-		if(name.equals("add")) {
+		if(name.equals("put")) {  //add
 			//when def is real definition
 			String defName = def.getName();
 			try {			
@@ -8981,6 +8951,11 @@ public class HiwiiContext extends Entity {
 				return doDefine(inst, me.getArguments().get(0), me.getArguments().get(1));
 			}
 			return doInstanceMappingAction(inst, me.getName(), me.getArguments());
+		}else if(expr instanceof FunctionExpression) {
+			FunctionExpression fe = (FunctionExpression) expr;
+			if(fe.getName().equals("add")) {
+				
+			}
 		}
 		return null;
 	}
