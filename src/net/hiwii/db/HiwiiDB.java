@@ -1538,6 +1538,11 @@ public class HiwiiDB {
 		}
 	}
 	
+	public List<Assignment> getInstanceChild(String sign)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		return null;
+	}
+	
 	public List<Assignment> getInstanceAssignments(String sign)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		List<Assignment> list = new ArrayList<Assignment>();

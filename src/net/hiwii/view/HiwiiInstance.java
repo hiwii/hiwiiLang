@@ -407,16 +407,18 @@ public class HiwiiInstance extends Entity {
 		str = str  + "{";
 		int last = assignments.size() - 1;
 		int i = 0;
-		str = str + "[";
-		for(Entity ent:entities.values()){
-			if(i == 0) {	
-				str = str + ent.toString();
-			}else {
-				str = str + "," + ent.toString();
+		if(!entities.isEmpty()) {
+			str = str + "[";
+			for(Entity ent:entities.values()){
+				if(i == 0) {	
+					str = str + ent.toString();
+				}else {
+					str = str + "," + ent.toString();
+				}
+				i++;
 			}
-			i++;
+			str = str + "]";
 		}
-		str = str + "]";
 		i = 0;
 		for(Assignment ass:assignments.values()){
 			String tail = ",";

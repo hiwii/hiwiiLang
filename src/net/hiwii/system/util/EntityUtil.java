@@ -2003,6 +2003,17 @@ public class EntityUtil {
 		return ass;
 	}
 			
+	/**
+	 * i:int
+	 * t:time
+	 * u:user
+	 * s:String
+	 * e:entity
+	 * 
+	 * @param ent
+	 * @return
+	 * @throws ApplicationException
+	 */
 	public static StoredValue entityToRecord(Entity ent) throws ApplicationException{
 		StoredValue rec = new StoredValue();
 		if(ent instanceof HiwiiInstance){
@@ -2017,8 +2028,11 @@ public class EntityUtil {
 			User user = (User) ent;
 			rec.setType('u');
 			rec.setValue(user.getUserid());
-		}else{
+		}else if(ent instanceof StringExpression){
 			rec.setType('s');	
+			rec.setValue(ent.toString());
+		}else{
+			rec.setType('e');	
 			rec.setValue(ent.toString());
 		}
 		return rec;
@@ -2028,7 +2042,7 @@ public class EntityUtil {
 			throws DatabaseException, IOException, ApplicationException, Exception{
 		char type = rec.getType();
 		String str = rec.getValue();
-		if(type == 's'){
+		if(type == 'e'){
 			Expression expr = StringUtil.parseString(str);
 			SessionContext sc = LocalHost.getInstance().newSessionContext();
 			Entity ent = sc.doCalculation(expr);
@@ -2044,7 +2058,9 @@ public class EntityUtil {
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 			Entity ent = db.getUser(str, null);
 			return ent;
-		}else{
+		}else if(type == 's'){
+			return new StringExpression(str);
+		}else  if(type == 'i'){
 			try {
 				HiwiiInstance hi = LocalHost.getInstance().getHiwiiDB().getInstanceById(str);
 				return hi;
@@ -2052,6 +2068,7 @@ public class EntityUtil {
 				throw new ApplicationException();
 			}
 		}
+		return new HiwiiException();
 	}
 	
 	public static Entity doInstanceIdentifierCalculation(HiwiiInstance inst, String name,

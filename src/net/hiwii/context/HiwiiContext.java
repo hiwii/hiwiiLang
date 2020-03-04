@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.SortedSet;
@@ -81,6 +82,7 @@ import net.hiwii.obj.decl.SwitchObject;
 import net.hiwii.obj.file.Directory;
 import net.hiwii.obj.file.FileObject;
 import net.hiwii.obj.time.CoupleEvent;
+import net.hiwii.obj.time.TimeObject;
 import net.hiwii.prop.Property;
 import net.hiwii.prop.Variable;
 import net.hiwii.prop.VariableStore;
@@ -1916,10 +1918,10 @@ public class HiwiiContext extends Entity {
 	}
 
 	public Entity doIdentifierCalculation(Entity subject, String name){	
-//		Entity ret = subject.doIdentifierCalculation(name);
-//		if(ret != null) {
-//			return ret;
-//		}
+		Entity ret = subject.doIdentifierCalculation(name);
+		if(ret != null) {
+			return ret;
+		}
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		try {
 			String str = db.getEntityIdCalculation(subject, name, null);
@@ -4609,7 +4611,10 @@ public class HiwiiContext extends Entity {
 			return se;
 		}
 		if(name.equals("now")){
-			TimeValue ret = EntityUtil.timeNow();
+//			TimeValue ret = EntityUtil.timeNow();
+			Calendar cal = Calendar.getInstance();
+			TimeObject ret = new TimeObject();
+			ret.setTime(cal);
 			return ret;
 		}
 		if(name.equals("me") || name.equals("wo") || name.equals("Œ“")){

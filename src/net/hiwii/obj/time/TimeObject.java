@@ -8,6 +8,7 @@ import net.hiwii.cognition.Expression;
 import net.hiwii.cognition.result.JudgmentResult;
 import net.hiwii.expr.IdentifierExpression;
 import net.hiwii.expr.NumberUnit;
+import net.hiwii.expr.StringExpression;
 import net.hiwii.message.HiwiiException;
 import net.hiwii.system.exception.ApplicationException;
 import net.hiwii.system.syntax.number.IntegerNumber;
@@ -25,6 +26,17 @@ public class TimeObject extends HiwiiEvent {
 
 	public void setTime(Calendar time) {
 		this.time = time;
+	}
+
+	@Override
+	public Entity doIdentifierCalculation(String name) {
+		if(name.equals("toString")) {
+			return new StringExpression(this.toString());
+		}
+		if(name.equals("millis")) {
+			return new IntegerNumber(String.valueOf(time.getTimeInMillis()));
+		}
+		return null;
 	}
 
 	@Override
@@ -80,6 +92,20 @@ public class TimeObject extends HiwiiEvent {
 				return to;
 			}
 			return new HiwiiException();
+		}else if(name.equals("format")) {
+			if (args.size() != 1) {
+				return new HiwiiException();
+			}
+			if(!(args.get(0) instanceof StringExpression)) {
+				return new HiwiiException();
+			}
+			StringExpression fmt = (StringExpression) args.get(0);
+			try {
+				String str = format(fmt.getValue());
+				return new StringExpression(str);
+			} catch (ApplicationException e) {
+				return new HiwiiException();
+			}
 		}
 		return null;
 	}

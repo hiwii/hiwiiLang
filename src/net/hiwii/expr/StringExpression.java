@@ -46,7 +46,8 @@ public class StringExpression extends SimpleRegular{
 	/******************************************/
 	@Override
 	public String toString() {
-		return '\"' + value + '\"';
+//		return '\"' + value + '\"';
+		return value;
 	}
 	
 	/****************************/
