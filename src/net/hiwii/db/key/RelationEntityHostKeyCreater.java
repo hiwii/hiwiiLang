@@ -19,9 +19,9 @@ public class RelationEntityHostKeyCreater implements SecondaryKeyCreator {
 			DatabaseEntry key, DatabaseEntry data, DatabaseEntry result) {
 		try {
 			String str = new String(key.getData(), "UTF-8");
-			int pos = str.indexOf('@');
+			int pos = str.indexOf('%');
 			if(pos > 0){
-				result.setData(str.substring(pos + 1).getBytes("UTF-8"));
+				result.setData(str.substring(0,pos).getBytes("UTF-8"));
 				return true;
 			}else{
 				return false;

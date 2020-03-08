@@ -1,6 +1,7 @@
 package net.hiwii.view;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -43,8 +44,8 @@ public class HiwiiInstance extends Entity {
 	private boolean closing;
 	//property must be defined in definition
 	
-	private NavigableMap<String,Entity> entities;  //single entities
-	private NavigableMap<String,List<Entity>> entityList;  //entity list
+	private List<Entity> entities;  //single entities
+//	private NavigableMap<String,List<Entity>> entityList;  //entity list
 	
 	private NavigableMap<String,Assignment> assignments;
 	private NavigableMap<String,JudgmentResult> judgments;
@@ -58,7 +59,8 @@ public class HiwiiInstance extends Entity {
 	private boolean positive;
 	
 	public HiwiiInstance() {
-		entities = new TreeMap<String,Entity>();
+		persisted = false;
+		entities = new ArrayList<Entity>();
 		assignments = new TreeMap<String,Assignment>();
 		judgments = new TreeMap<String,JudgmentResult>();
 		switches = new TreeMap<String,String>();
@@ -102,18 +104,15 @@ public class HiwiiInstance extends Entity {
 		this.closing = closing;
 	}
 
-	public NavigableMap<String, Entity> getEntities() {
+		
+	public List<Entity> getEntities() {
 		return entities;
 	}
-	public void setEntities(NavigableMap<String, Entity> entities) {
+
+	public void setEntities(List<Entity> entities) {
 		this.entities = entities;
 	}
-	public NavigableMap<String, List<Entity>> getEntityList() {
-		return entityList;
-	}
-	public void setEntityList(NavigableMap<String, List<Entity>> entityList) {
-		this.entityList = entityList;
-	}
+
 	public NavigableMap<String, Assignment> getAssignments() {
 		return assignments;
 	}
@@ -192,17 +191,17 @@ public class HiwiiInstance extends Entity {
 				return new HiwiiException();
 			}
 			Entity ent = args.get(0);
-			Definition def;
-			try {
-				def = EntityUtil.proxyGetDefinition(ent.getClassName());
-			} catch (Exception e) {
-				return new HiwiiException();
-			}
-			if(def == null) {
-				return new HiwiiException();
-			}
-			entities.put(def.getSignature(), ent);
-			return new NormalEnd();
+//			Definition def;
+//			try {
+//				def = EntityUtil.proxyGetDefinition(ent.getClassName());
+//			} catch (Exception e) {
+//				return new HiwiiException();
+//			}
+//			if(def == null) {
+//				return new HiwiiException();
+//			}
+			entities.add(ent);
+			return persistChild(ent);
 		}
 		return null;
 	}
@@ -282,10 +281,10 @@ public class HiwiiInstance extends Entity {
 				return new HiwiiException();
 			}
 			String sign = def.getSignature();
-			String key = entities.floorKey(sign);
-			if(key != null){
-				
-			}
+//			String key = entities.floorKey(sign);
+//			if(key != null){
+//				
+//			}
 		}
 		return new NormalEnd();
 	}
@@ -356,6 +355,29 @@ public class HiwiiInstance extends Entity {
 		}
 	}
 	
+	public Expression persistChild(Entity child) {
+		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+		try {
+			db.putChildEntity(uuid, child, null);
+			return new NormalEnd();
+		} catch (DatabaseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return new HiwiiException();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return new HiwiiException();
+		} catch (ApplicationException e) {
+			// TODO Auto-generated catch block
+//			e.printStackTrace();
+			return new HiwiiException();
+		} catch (Exception e) {
+			return new HiwiiException();
+		}
+
+	}
+	
 	public Expression confirm(String name, JudgmentResult value){
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		try {
@@ -401,15 +423,13 @@ public class HiwiiInstance extends Entity {
 		if(name != null){
 			str = str + ":" + name;
 		}
-		if(assignments.size() == 0 && judgments.size() == 0){
-			return str;
-		}
+		
 		str = str  + "{";
 		int last = assignments.size() - 1;
 		int i = 0;
 		if(!entities.isEmpty()) {
 			str = str + "[";
-			for(Entity ent:entities.values()){
+			for(Entity ent:entities){
 				if(i == 0) {	
 					str = str + ent.toString();
 				}else {
@@ -418,6 +438,9 @@ public class HiwiiInstance extends Entity {
 				i++;
 			}
 			str = str + "]";
+		}
+		if(assignments.size() == 0 && judgments.size() == 0){
+			return str;
 		}
 		i = 0;
 		for(Assignment ass:assignments.values()){

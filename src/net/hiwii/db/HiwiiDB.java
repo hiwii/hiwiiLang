@@ -53,7 +53,6 @@ import net.hiwii.db.key.EntityPartKeyCreater;
 import net.hiwii.db.key.FunctionHeadKeyCreater;
 import net.hiwii.db.key.InstanceNameKeyCreater;
 import net.hiwii.db.key.InstanceTypeKeyCreater;
-import net.hiwii.db.key.MultiArgumentKeyCreater;
 import net.hiwii.db.key.MultiFunctionKeyCreater;
 import net.hiwii.db.key.PropertyTypeKeyCreater;
 import net.hiwii.db.key.RelationEntityHostKeyCreater;
@@ -1106,12 +1105,16 @@ public class HiwiiDB {
 		return 0;
 	}
 	
-	public String putChildEntity(String parentId, String child, Transaction txn)
+	public String putChildEntity(String parentId, Entity child, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = parentId + "#" + child;
+		String key = parentId + "%" + EntityUtil.getUUID();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-	    DatabaseEntry theData = new DatabaseEntry(child.getBytes("UTF-8"));
-
+		DatabaseEntry theData = new DatabaseEntry();
+		
+		StoredValue rec = EntityUtil.entityToRecord(child);
+		TupleBinding<StoredValue> dataBinding = new ValueBinding();
+		dataBinding.objectToEntry(rec, theData);
+	    
 		childEntity.put(txn, theKey, theData);
 
 		return key;
@@ -1393,6 +1396,8 @@ public class HiwiiDB {
 					ret.setName(name0);
 				}
 				
+				List<Entity> entities = getInstanceChildren(ret.getUuid());
+				ret.setEntities(entities);
 				List<Assignment> asslist = getInstanceAssignments(ret.getUuid());
 				for(Assignment ass:asslist) {
 					ret.getAssignments().put(ass.getName(), ass);
@@ -1489,6 +1494,8 @@ public class HiwiiDB {
 					String name0 = new String(key.getData(), "UTF-8");
 					ret.setName(name0);
 				}
+				List<Entity> entities = getInstanceChildren(ret.getUuid());
+				ret.setEntities(entities);
 				
 				List<Assignment> asslist = getInstanceAssignments(ret.getUuid());
 				for(Assignment ass:asslist) {
@@ -1672,6 +1679,45 @@ public class HiwiiDB {
 					name = pkey.substring(0, pos);
 				}
 				result.put(name, jdg);
+				retVal = cursor.getNextDup(uid, key, data, LockMode.DEFAULT);
+			}
+		}catch(DatabaseException e) {
+			throw new ApplicationException();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally  {
+			try {
+				if (cursor != null) {
+					cursor.close();
+				}
+			} catch(DatabaseException e) {
+				throw new ApplicationException();
+			}
+		}
+		return result;
+	}
+	
+	public List<Entity> getInstanceChildren(String sign)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		List<Entity> result = new ArrayList<Entity>();
+		//		DatabaseEntry theKey = new DatabaseEntry(sign.getBytes("UTF-8"));
+		DatabaseEntry uid = new DatabaseEntry(sign.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+		DatabaseEntry data = new DatabaseEntry();
+		SecondaryCursor cursor = indexHostChild.openCursor(null, null);
+
+		try {
+			OperationStatus retVal = cursor.getSearchKey(uid, key, data, LockMode.DEFAULT);
+			retVal = cursor.getSearchKey(uid, key, data, LockMode.DEFAULT);
+			TupleBinding<StoredValue> dataBinding = new ValueBinding();
+			while(retVal == OperationStatus.SUCCESS){
+				StoredValue val = dataBinding.entryToObject(data);
+				Entity ent = EntityUtil.recordToEntity(val);
+				result.add(ent);
 				retVal = cursor.getNextDup(uid, key, data, LockMode.DEFAULT);
 			}
 		}catch(DatabaseException e) {

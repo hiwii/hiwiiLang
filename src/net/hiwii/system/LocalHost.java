@@ -73,8 +73,9 @@ public class LocalHost extends Entity{
 	private NavigableMap<String,Terminal> terminals;
 	//key is groupId
 //	private NavigableMap<String,RuntimeLadder> groups;
-	
+	//Constants
 	private HiwiiDB hiwiiDB = new HiwiiDB();
+
 
 //	private JFXApplication application;
 
