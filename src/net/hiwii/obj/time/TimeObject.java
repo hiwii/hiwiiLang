@@ -18,6 +18,9 @@ import net.hiwii.system.util.StringUtil;
 import net.hiwii.view.Entity;
 
 public class TimeObject extends HiwiiEvent {
+	public TimeObject() {
+		setClassName("Time");
+	}
 	private Calendar time;
 
 	public Calendar getTime() {

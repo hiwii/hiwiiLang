@@ -170,7 +170,7 @@ public class HiwiiDB {
 	Database groupDatabase = null;
 	Database roleDatabase = null;
 	
-	Database relEntityHost = null;
+	Database childEntity = null;
 	SecondaryDatabase indexHostChild = null;
 	
 	Database mapUserGroup = null;
@@ -418,9 +418,9 @@ public class HiwiiDB {
 		    indexGroupUser = myDbEnvironment.openSecondaryDatabase(null, "indexGroupUser", mapUserGroup, 
 		    		mySecConfig);
 		    
-		    relEntityHost = myDbEnvironment.openDatabase(null, "relEntityHost", dbconf);
+		    childEntity = myDbEnvironment.openDatabase(null, "childEntity", dbconf);
 		    mySecConfig.setKeyCreator(new RelationEntityHostKeyCreater());
-		    indexHostChild = myDbEnvironment.openSecondaryDatabase(null, "indexHostChild", relEntityHost, 
+		    indexHostChild = myDbEnvironment.openSecondaryDatabase(null, "indexHostChild", childEntity, 
 		    		mySecConfig);
 		    
 		    //每一个entity有且只有一个名字，其它形式的引用通过refer实现。
@@ -455,8 +455,8 @@ public class HiwiiDB {
 			if (indexHostChild != null) {
 				indexHostChild.close();
 			}
-			if (relEntityHost != null) {
-				relEntityHost.close();
+			if (childEntity != null) {
+				childEntity.close();
 			}
 			
 			if (indexGroupUser != null) {
@@ -1104,6 +1104,17 @@ public class HiwiiDB {
 	
 	public int howManyChild(String uid, String childType){
 		return 0;
+	}
+	
+	public String putChildEntity(String parentId, String child, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = parentId + "#" + child;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry(child.getBytes("UTF-8"));
+
+		childEntity.put(txn, theKey, theData);
+
+		return key;
 	}
 	
 	public String putInstance(String defname, Transaction txn)
