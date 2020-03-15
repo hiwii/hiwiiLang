@@ -1801,7 +1801,7 @@ public class HiwiiContext extends Entity {
 			}
 			Expression value = doDecision(subject, args.get(1));
 			if(value instanceof HiwiiException){
-				return (Expression) value;
+				return value;
 			}
 			JudgmentResult res = (JudgmentResult) value;
 			return subject.doJudge(args.get(0), res);

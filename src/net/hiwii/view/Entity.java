@@ -85,7 +85,9 @@ import net.hiwii.system.util.EntityUtil;
  * action\decide\calculation是原子型态。
  * process是运算形式的混合形态。process和action相似，一个时刻只能执行一个action。
  * 不同在于，process必须返回一个值。
- * identifier/function/mapping/subjectVerb/+adverb
+ * identifier/function/mapping/subjectVerb/
+ * functionMapping同时传递表达式参数和对象参数
+ * +adverb
  * doCalculation/doDecision/doAction
  *
  */
