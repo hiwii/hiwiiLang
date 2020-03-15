@@ -2109,7 +2109,12 @@ public class HiwiiContext extends Entity {
 		}
 		if(name.equals("doCalculation")){
 			if(args.size() == 1){
-				return doCalculation(args.get(0));
+				Entity result = doCalculation(args.get(0));
+				if(!(result instanceof Expression)) {
+					return new HiwiiException();
+				}
+				Expression arg = (Expression) result;
+				return doCalculation(arg);
 			}
 		}
 		if(name.equals("last")){
@@ -2132,7 +2137,7 @@ public class HiwiiContext extends Entity {
 				return new HiwiiException();
 			}
 		}
-		if(name.equals("put")){
+		if(name.equals("create") || name.equals("put")){
 			if(args.size() != 1){
 				return new HiwiiException();
 			}
@@ -2946,7 +2951,8 @@ public class HiwiiContext extends Entity {
 			return new HiwiiException();
 		}else if(name.equals("create")){
 			if(args.size() == 1){
-				return putInstance(args.get(0));
+				Expression ret = putInstance(args.get(0));
+				return ret;
 			}else if(args.size() == 2){
 				//put(Object, childObject)
 				return doNewAction(args.get(0), args.get(1));
@@ -4631,6 +4637,20 @@ public class HiwiiContext extends Entity {
 	}
 
 	public Entity proxyFunctionCalculation(String name, List<Entity> args){
+		if(name.equals("doCalculation")){
+			if(args.size() != 1){
+				return new HiwiiException();
+			}
+			if(!(args.get(0) instanceof StringExpression)) {
+				return new HiwiiException();
+			}
+			StringExpression  str = (StringExpression) args.get(0);
+			Expression expr = str.toExpression();
+			if(expr instanceof HiwiiException) {
+				return expr;
+			}
+			return doCalculation(expr);
+		}
 		if(name.equals("alternate")){
 			if(args.size() < 2){
 				return new HiwiiException();
