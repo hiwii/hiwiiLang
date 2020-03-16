@@ -151,6 +151,10 @@ public class HiwiiDB {
 	Database idDecision = null;
 	Database idAction = null;
 	
+	Database inst_idCalculation = null;
+	Database inst_idDecision = null;
+	Database inst_idAction = null;
+	
 	Database fCalculation = null;
 	Database fDecision = null;
 	Database fAction = null;
@@ -339,6 +343,10 @@ public class HiwiiDB {
 			idCalculation = myDbEnvironment.openDatabase(null, "calcuDatabase", dbconf);
 			idDecision = myDbEnvironment.openDatabase(null, "decisionDatabase", dbconf);
 			idAction = myDbEnvironment.openDatabase(null, "actionDatabase", dbconf);
+			
+			inst_idCalculation = myDbEnvironment.openDatabase(null, "inst_idCalculation", dbconf);
+			inst_idDecision = myDbEnvironment.openDatabase(null, "inst_idDecision", dbconf);
+			inst_idAction = myDbEnvironment.openDatabase(null, "inst_idAction", dbconf);
 			
 			fCalculation = myDbEnvironment.openDatabase(null, "fcalcuDatabase", dbconf);
 			fDecision = myDbEnvironment.openDatabase(null, "fdecisionDatabase", dbconf);
@@ -542,6 +550,15 @@ public class HiwiiDB {
 			
 			if (idAction != null) {
 				idAction.close();
+			}			
+			if (inst_idCalculation != null) {
+				inst_idCalculation.close();
+			}			
+			if (inst_idDecision != null) {
+				inst_idDecision.close();
+			}			
+			if (inst_idAction != null) {
+				inst_idAction.close();
 			}
 			
 			if (myDatabase != null) {
@@ -3636,18 +3653,35 @@ public class HiwiiDB {
 		idCalculation.put(txn, theKey, theData);
 	}
 	
-	public void putEntityIdCalculation(HiwiiInstance inst, String name, String expr, Transaction txn)
+	public void putInstIdCalculation(HiwiiInstance inst, String name, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = name + '#' + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
-	    OperationStatus status = idCalculation.get(null, theKey, theData, LockMode.DEFAULT);
+	    OperationStatus status = inst_idCalculation.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			throw new ApplicationException();
 		}
 
-		idCalculation.put(txn, theKey, theData);
+		inst_idCalculation.put(txn, theKey, theData);
+	}
+	
+	public Expression getInstIdCalculation(HiwiiInstance inst, String name, String expr, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = name + '#' + inst.getUuid();
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+
+	    OperationStatus status = inst_idCalculation.get(null, theKey, theData, LockMode.DEFAULT);
+		if(status == OperationStatus.NOTFOUND){
+//			throw new ApplicationException();
+			return null;
+		}
+		
+		String str = new String(theData.getData(), "UTF-8");
+		Expression exp = StringUtil.parseString(str);
+		return exp;
 	}
 	
 	public String getIdAction(String name, Transaction txn)
