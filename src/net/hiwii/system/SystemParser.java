@@ -1374,83 +1374,239 @@ public class SystemParser implements ScriptParserConstants{
 				end = begin;
 				ParsedExpression exp = new ParsedExpression(ret, end);
 				return exp;
-			}
-			MyToken a = fetchNext(begin);
-			if(a.kind == LPAREN){
-				assertEnd(a, lastToken);
-				MyToken b = matchToken(fetchNext(a), lastToken, RPAREN);
-				if(b == null){
-					throw new ApplicationException("err");
-				}
-				if(b == lastToken) {
-					Expression exp = getFunctionExpression(begin, b);
-					ret = exp;
-					end = b;
-				}else {
-					MyToken c = fetchNext(b);
-					if(c.kind == LBRACE) {
-						MyToken d = matchToken(fetchNext(c), lastToken, RBRACE);
+			}else{
+				MyToken a = fetchNext(begin);
+				if(a.kind == LPAREN){
+					assertEnd(a, lastToken);
+					MyToken b = matchToken(fetchNext(a), lastToken, RPAREN);
+					if(b == null){
+						throw new ApplicationException("err");
+					}
+					Parentheses pt = getParentheses(a, b);
+					boolean fmapping = false;
+					boolean fbrace = false;
+					boolean brace = false;
+					MyToken d = null;
+					MyToken e, f = null;
+					List<Expression> fargs, margs = null, comms = null;
+					fargs = pt.getArray();
+					if(b != lastToken){
+						MyToken c = fetchNext(b);
+						if(c.kind == LBRACE){						
+							if(c == lastToken){
+								throw new ApplicationException("err");
+							}
+							d = matchToken(fetchNext(c), lastToken, RBRACE);
+							if(d == null){
+								throw new ApplicationException("err");
+							}
+							fbrace = true;
+						}else if(c.kind == LBRACKET){
+							if(c == lastToken){
+								throw new ApplicationException("err");
+							}
+							d = matchToken(fetchNext(c), lastToken, RBRACKET);
+							if(d == null){
+								throw new ApplicationException("err");
+							}
+							BracketExpression be = getBracket(c, d);
+							margs = be.getArray();
+							if(d != lastToken){
+								e = fetchNext(d);
+								if(e.kind == LBRACE){
+									if(e == lastToken){
+										throw new ApplicationException("err");
+									}
+									f = matchToken(fetchNext(e), lastToken, RBRACE);
+									if(f == null){
+										throw new ApplicationException("err");
+									}
+									if(fetchNext(e) != f){
+										BraceExpression prg = getBlock(e, f);
+										comms = prg.getArray();
+									}
+									brace = true;
+								}								
+							}
+							fmapping = true;
+						}
+					}
+					if(fmapping){
+						if(brace){
+							FunctionMappingBrace fm = new FunctionMappingBrace();
+							fm.setName(begin.image);
+							fm.setFargs(fargs);
+							fm.setMargs(margs);
+							fm.setComms(comms);
+							ret = fm;
+							end = f;
+						}else{
+							FunctionMapping fm = new FunctionMapping();
+							fm.setName(begin.image);
+							fm.setFargs(fargs);
+							fm.setMargs(margs);
+							ret = fm;
+							end = d;
+						}
+					}else if(fbrace){
 						FunctionBrace fb = new FunctionBrace();
-						Parentheses paren = getParentheses(a, b);
-						BraceExpression brace = getBlock(c,d);
 						fb.setName(begin.image);
-						fb.setArguments(paren.getArray());
-						fb.setStatements(brace.getArray());
+						fb.setArguments(fargs);
+						fb.setStatements(margs);
 						ret = fb;
 						end = d;
-					}else {
-						Expression exp = getFunctionExpression(begin, b);
-						ret = exp;
+					}else{
+						FunctionExpression fe = new FunctionExpression();
+						fe.setName(begin.image);
+						fe.setArguments(fargs);
+//						Expression exp = getFunctionExpression(begin, b);
+						ret = fe;
 						end = b;
 					}
-				}
-			}else if(a.kind == LBRACKET){
-				assertEnd(a, lastToken);
-				MyToken b = matchToken(fetchNext(a), lastToken, RBRACKET);
-				if(b == null){
-					throw new ApplicationException("err");
-				}
-				if(b == lastToken) {
-					Expression exp = getMappingExpression(begin, b);
-					ret = exp;
-					end = b;
-				}else {
-					MyToken c = fetchNext(b);
-					if(c.kind == LBRACE) {
-						MyToken d = matchToken(fetchNext(c), lastToken, RBRACE);
+				}else if(a.kind == LBRACKET){
+					assertEnd(a, lastToken);
+					MyToken b = matchToken(fetchNext(a), lastToken, RBRACKET);
+					if(b == null){
+						throw new ApplicationException("err");
+					}
+					MappingExpression exp = getMappingExpression(begin, b);
+
+					boolean mbrace = false;
+					MyToken d = null;
+					BraceExpression prg = null;
+					if(b != lastToken){
+						MyToken c = fetchNext(b);
+						if(c.kind == LBRACE){						
+							if(c == lastToken){
+								throw new ApplicationException("err");
+							}
+							d = matchToken(fetchNext(c), lastToken, RBRACE);
+							if(d == null){
+								throw new ApplicationException("err");
+							}
+							mbrace = true;
+							prg = getBlock(c, d);
+						}
+					}
+					if(mbrace){
 						MappingBrace mb = new MappingBrace();
-						BracketExpression paren = getBracket(a, b);
-						BraceExpression brace = getBlock(c,d);
-						mb.setName(begin.image);
-						mb.setArguments(paren.getArray());
-						mb.setStatements(brace.getArray());
+						mb.setName(exp.getName());
+						mb.setArguments(exp.getArguments());
+						mb.setStatements(prg.getArray());
 						ret = mb;
 						end = d;
-					}else {
-						Expression exp = getMappingExpression(begin, b);
+					}else{
 						ret = exp;
 						end = b;
 					}
+				}else if(a.kind == LBRACE){
+					assertEnd(a, lastToken);
+					MyToken b = matchToken(fetchNext(a), lastToken, RBRACE);
+					if(b == null){
+						throw new ApplicationException("err");
+					}
+					Expression exp = getIdentifierBrace(begin, b);
+					ret = exp;
+					end = b;
+				}else{
+					ret = new IdentifierExpression(begin.image);
+					end = begin;
 				}
-			}else if(a.kind == LBRACE){
-				assertEnd(a, lastToken);
-				MyToken b = matchToken(fetchNext(a), lastToken, RBRACE);
-				if(b == null){
-					throw new ApplicationException("err");
-				}
-				Expression exp = getIdentifierBrace(begin, b);
-				ret = exp;
-				end = b;
-			}else{
-				ret = new IdentifierExpression(begin.image);
-				end = begin;
+				ParsedExpression exp = new ParsedExpression(ret, end);
+				return exp;
 			}
-			ParsedExpression exp = new ParsedExpression(ret, end);
-			return exp;
 		}else{
 			throw new ApplicationException("err");
 		}
 	}
+//	public ParsedExpression getSufix(MyToken firstToken, MyToken lastToken) throws ApplicationException{
+//		MyToken begin, end = null;
+//		Expression ret = null;
+//		
+//		begin = firstToken;
+//		if(begin.kind == IDENTIFIER){
+//			if(begin == lastToken){
+//				ret = new IdentifierExpression(begin.image);
+//				end = begin;
+//				ParsedExpression exp = new ParsedExpression(ret, end);
+//				return exp;
+//			}
+//			MyToken a = fetchNext(begin);
+//			if(a.kind == LPAREN){
+//				assertEnd(a, lastToken);
+//				MyToken b = matchToken(fetchNext(a), lastToken, RPAREN);
+//				if(b == null){
+//					throw new ApplicationException("err");
+//				}
+//				if(b == lastToken) {
+//					Expression exp = getFunctionExpression(begin, b);
+//					ret = exp;
+//					end = b;
+//				}else {
+//					MyToken c = fetchNext(b);
+//					if(c.kind == LBRACE) {
+//						MyToken d = matchToken(fetchNext(c), lastToken, RBRACE);
+//						FunctionBrace fb = new FunctionBrace();
+//						Parentheses paren = getParentheses(a, b);
+//						BraceExpression brace = getBlock(c,d);
+//						fb.setName(begin.image);
+//						fb.setArguments(paren.getArray());
+//						fb.setStatements(brace.getArray());
+//						ret = fb;
+//						end = d;
+//					}else {
+//						Expression exp = getFunctionExpression(begin, b);
+//						ret = exp;
+//						end = b;
+//					}
+//				}
+//			}else if(a.kind == LBRACKET){
+//				assertEnd(a, lastToken);
+//				MyToken b = matchToken(fetchNext(a), lastToken, RBRACKET);
+//				if(b == null){
+//					throw new ApplicationException("err");
+//				}
+//				if(b == lastToken) {
+//					Expression exp = getMappingExpression(begin, b);
+//					ret = exp;
+//					end = b;
+//				}else {
+//					MyToken c = fetchNext(b);
+//					if(c.kind == LBRACE) {
+//						MyToken d = matchToken(fetchNext(c), lastToken, RBRACE);
+//						MappingBrace mb = new MappingBrace();
+//						BracketExpression paren = getBracket(a, b);
+//						BraceExpression brace = getBlock(c,d);
+//						mb.setName(begin.image);
+//						mb.setArguments(paren.getArray());
+//						mb.setStatements(brace.getArray());
+//						ret = mb;
+//						end = d;
+//					}else {
+//						Expression exp = getMappingExpression(begin, b);
+//						ret = exp;
+//						end = b;
+//					}
+//				}
+//			}else if(a.kind == LBRACE){
+//				assertEnd(a, lastToken);
+//				MyToken b = matchToken(fetchNext(a), lastToken, RBRACE);
+//				if(b == null){
+//					throw new ApplicationException("err");
+//				}
+//				Expression exp = getIdentifierBrace(begin, b);
+//				ret = exp;
+//				end = b;
+//			}else{
+//				ret = new IdentifierExpression(begin.image);
+//				end = begin;
+//			}
+//			ParsedExpression exp = new ParsedExpression(ret, end);
+//			return exp;
+//		}else{
+//			throw new ApplicationException("err");
+//		}
+//	}
 	
 	public class ParsedExpression{
 		private Expression expression;
