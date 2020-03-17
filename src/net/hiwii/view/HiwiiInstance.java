@@ -9,6 +9,7 @@ import java.util.TreeMap;
 
 import com.sleepycat.je.DatabaseException;
 
+import net.hiwii.arg.Argument;
 import net.hiwii.cognition.Expression;
 import net.hiwii.cognition.NullValue;
 import net.hiwii.cognition.result.JudgmentResult;
@@ -16,8 +17,14 @@ import net.hiwii.cognition.result.NormalEnd;
 import net.hiwii.context.HiwiiContext;
 import net.hiwii.db.HiwiiDB;
 import net.hiwii.def.Assignment;
+import net.hiwii.def.Declaration;
 import net.hiwii.def.Definition;
+import net.hiwii.def.decl.FunctionDeclaration;
+import net.hiwii.expr.BinaryOperation;
+import net.hiwii.expr.FunctionExpression;
 import net.hiwii.expr.IdentifierExpression;
+import net.hiwii.expr.MappingExpression;
+import net.hiwii.expr.SubjectOperation;
 import net.hiwii.message.HiwiiException;
 import net.hiwii.prop.Property;
 import net.hiwii.system.LocalHost;
@@ -211,7 +218,15 @@ public class HiwiiInstance extends Entity {
 		return super.doFunctionDecision(name, args);
 	}
 	
-	
+	public Expression doMappingAction(String name, List<Expression> args){
+		if(name.equals("declare")) {
+			if(args.size() != 2) {
+				return new HiwiiException();
+			}
+			return doDeclare(args.get(0), args.get(1));
+		}
+		return null;
+	}
 	
 	@Override
 	public Entity doMappingCalculation(String name, List<Expression> args, HiwiiContext context) {
@@ -307,6 +322,129 @@ public class HiwiiInstance extends Entity {
 		return null;
 	}
 
+	public Expression doDeclare(Expression source, Expression expr) {
+		if(source instanceof BinaryOperation){
+			BinaryOperation bo = (BinaryOperation) source;
+			if(!(bo.getOperator().equals(":"))){
+				return new HiwiiException();
+			}
+			
+			Expression left = bo.getLeft();
+			String cogn = null;
+
+			if(left instanceof IdentifierExpression){
+				IdentifierExpression ie = (IdentifierExpression) left;
+				cogn = ie.getName();
+			}else{
+				return new HiwiiException();
+			}
+
+			Expression right = bo.getRight();
+			if(cogn.equals("Calculation") || cogn.equals("Decision") || cogn.equals("Action")){
+				char tp = 0;
+				if(cogn.equals("Action")){
+					tp = 'a';
+				}else if(cogn.equals("Calculation")){
+					tp = 'c';
+				}else{
+					tp = 'd';
+				}
+				return doDeclare(tp, right, expr);
+			}
+		}else {
+			return new HiwiiException();
+		}
+		return new NormalEnd();		
+	}
+	
+	public Expression doDeclare(char type, Expression source, Expression expr){
+		String name = null;
+
+		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+		try {
+			if(source instanceof IdentifierExpression){
+				IdentifierExpression ie = (IdentifierExpression) source;
+				name = ie.getName();
+				if(type == 'c'){
+					db.putInstIdCalculation(this, name, expr.toString(), null);
+				}else if(type == 'd'){
+
+				}else{
+					db.putIdAction(name, expr.toString(), null);
+				}
+			}else if(source instanceof FunctionExpression){
+				FunctionExpression fe = (FunctionExpression) source;
+				
+				if(type == 'c'){
+					db.putFunctionCalculation(fe, expr, null);
+				}else if(type == 'd'){
+//					db.putFunDecision(fd, null);
+				}else{
+//					db.putFunAction(fd, null);
+				}
+			}else if(source instanceof MappingExpression){
+
+			}else if(source instanceof SubjectOperation){
+				SubjectOperation so = (SubjectOperation) source;
+				if(!(so.getSubject() instanceof IdentifierExpression)){
+					//不允许有修饰出现,someObject do f1(), another do f2().那么有不同的definition
+					return new HiwiiException();
+				}
+				IdentifierExpression id = (IdentifierExpression) so.getSubject();
+				Definition def = EntityUtil.proxyGetDefinition(id.getName());
+				if(def != null){
+					if(so.getAction() instanceof IdentifierExpression){
+						IdentifierExpression ie = (IdentifierExpression) so.getAction();
+						Declaration dec = new Declaration();
+						dec.setName(ie.getName());
+						dec.setStatement(expr);
+						if(type == 'c'){
+							db.putIdCalculation(name, expr.toString(), null);
+						}else if(type == 'd'){
+
+						}else{
+
+						}
+					}else if(so.getAction() instanceof FunctionExpression){
+						FunctionExpression fe = (FunctionExpression) so.getAction();
+						name = fe.getName();
+						FunctionDeclaration fd = new FunctionDeclaration();
+//						fd.setName(name);
+						try {
+							List<Argument> args = EntityUtil.parseArguments(fe.getArguments());
+//							fd.setArguments(args);
+						} catch (ApplicationException e) {
+							return new HiwiiException();//参数错误
+						}
+
+						fd.setStatement(expr);
+//						if(type == 'c'){
+//							db.putFunCalculation(fd, null);
+//						}else if(type == 'd'){
+//							db.putFunDecision(fd, null);
+//						}else{
+//							db.putFunAction(fd, null);
+//						}
+					}
+				}
+				
+			}else{
+				return new HiwiiException();
+			}
+		} catch (DatabaseException e) {
+			return new HiwiiException();
+		} catch (IOException e) {
+			return new HiwiiException();
+		} catch (ApplicationException e) {
+			return new HiwiiException();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new HiwiiException();
+		} 
+
+		return new NormalEnd();
+	}
+	
 	public Expression setProperty(String name, Entity value){
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		Assignment ass = assignments.get(name);

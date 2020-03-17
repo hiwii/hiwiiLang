@@ -9071,7 +9071,7 @@ public class HiwiiContext extends Entity {
 			
 			return doInstanceSwitch(inst, args.get(0), args.get(1));
 		}
-		return doMappingAction(inst, name, args);
+		return inst.doMappingAction(name, args);
 	}
 	
 	public Expression doInstanceIdentifierDecision(HiwiiInstance inst, String name){
