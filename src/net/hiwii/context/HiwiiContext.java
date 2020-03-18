@@ -1832,6 +1832,7 @@ public class HiwiiContext extends Entity {
 			if(args.size() != 1) {
 				return new HiwiiException();
 			}
+			
 		}else {
 			List<Expression> exps = expressionMapping(args);
 			MappingExpression ret = new MappingExpression();
