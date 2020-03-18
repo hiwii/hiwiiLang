@@ -1239,13 +1239,13 @@ public class HiwiiContext extends Entity {
 			Definition def = (Definition)subject;
 			return doDefinitionCalculation(def, expr);
 		}
-		if(subject instanceof HiwiiInstance){
-			HiwiiInstance inst = (HiwiiInstance) subject;
-			if(expr instanceof IdentifierExpression){
-				IdentifierExpression ie = (IdentifierExpression) expr;
-				return EntityUtil.doInstanceIdentifierCalculation(inst, ie.getName(), this);
-			}			
-		}
+//		if(subject instanceof HiwiiInstance){
+//			HiwiiInstance inst = (HiwiiInstance) subject;
+//			if(expr instanceof IdentifierExpression){
+//				IdentifierExpression ie = (IdentifierExpression) expr;
+//				return EntityUtil.doInstanceIdentifierCalculation(inst, ie.getName(), this);
+//			}			
+//		}
 		if(expr instanceof BraceExpression){
 			BraceExpression prg = (BraceExpression) expr;
 			return doProgramCalculation(subject, prg);
@@ -1932,17 +1932,6 @@ public class HiwiiContext extends Entity {
 				return rc.doCalculation(subject, expr);
 			}
 			
-//			String key = null;
-//			if(subject instanceof HiwiiInstance) {
-//				HiwiiInstance inst = (HiwiiInstance) subject;
-//				key = name + "@" + inst.getUuid();
-//				str = db.getIdProcess(key, null);
-//			}			
-//			if(str != null){
-//				Expression expr0 = new StringExpression(str).toExpression();
-//				return doProcess(subject, expr0);
-//			}
-			
 		} catch (DatabaseException e) {
 			return new HiwiiException();
 		} catch (IOException e) {
@@ -1953,11 +1942,6 @@ public class HiwiiContext extends Entity {
 			return new HiwiiException();
 		}		
 		
-//		ret = null;
-//		ret = subject.doIdentifierCalculation(name);
-//		if(ret != null){
-//			return ret;
-//		}
 		return null;
 	}
 

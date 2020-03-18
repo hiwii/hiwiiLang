@@ -3667,7 +3667,7 @@ public class HiwiiDB {
 		inst_idCalculation.put(txn, theKey, theData);
 	}
 	
-	public Expression getInstIdCalculation(HiwiiInstance inst, String name, String expr, Transaction txn)
+	public String getInstIdCalculation(HiwiiInstance inst, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = name + '#' + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
@@ -3680,8 +3680,8 @@ public class HiwiiDB {
 		}
 		
 		String str = new String(theData.getData(), "UTF-8");
-		Expression exp = StringUtil.parseString(str);
-		return exp;
+//		Expression exp = StringUtil.parseString(str);
+		return str;
 	}
 	
 	public String getIdAction(String name, Transaction txn)
@@ -4681,14 +4681,10 @@ public class HiwiiDB {
 	 * @throws DatabaseException *************/
 	public String getEntityIdCalculation(Entity subject, String name, Transaction txn)
 			throws DatabaseException, IOException, ApplicationException, Exception{
-//		if(subject instanceof Definition){
-//			Definition def = (Definition) subject;
-//			return getIdCalculation(def, name, null);
-//		}else 
 		if(subject instanceof HiwiiInstance){
 			HiwiiInstance inst = (HiwiiInstance) subject;
-			String key = name + "#" + inst.getUuid();
-			String ret = getIdCalculation(key, txn);
+//			String key = name + "#" + inst.getUuid();
+			String ret = getInstIdCalculation(inst, name, txn);
 			if(ret != null) {
 				return ret;
 //				throw new ApplicationException("not found!");
