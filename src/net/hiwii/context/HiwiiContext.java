@@ -1249,7 +1249,8 @@ public class HiwiiContext extends Entity {
 		if(expr instanceof BraceExpression){
 			BraceExpression prg = (BraceExpression) expr;
 			return doProgramCalculation(subject, prg);
-		}else if(expr instanceof IdentifierExpression){
+		} 
+		if(expr instanceof IdentifierExpression){
 			IdentifierExpression ie = (IdentifierExpression) expr;
 			String name = ie.getName();
 			Entity ret = doIdentifierCalculation(subject, name);
@@ -1270,7 +1271,7 @@ public class HiwiiContext extends Entity {
 		}else if(expr instanceof MappingExpression){
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
-			return doMappingAction(name, me.getArguments());
+			return doMappingCalculation(subject, name, me.getArguments());
 		}else if(expr instanceof SubjectVerb){
 			SubjectVerb sv = (SubjectVerb) expr;
 			Entity subj = doCalculation(subject, sv.getSubject());
@@ -1827,10 +1828,16 @@ public class HiwiiContext extends Entity {
 	}
 
 	public Expression doMappingCalculation(Entity subject, String name, List<Expression> args){
-		List<Expression> exps = expressionMapping(args);
-		MappingExpression ret = new MappingExpression();
-		ret.setName(name);
-		ret.setArguments(exps);
+		if(name.equals("return")) {
+			if(args.size() != 1) {
+				return new HiwiiException();
+			}
+		}else {
+			List<Expression> exps = expressionMapping(args);
+			MappingExpression ret = new MappingExpression();
+			ret.setName(name);
+			ret.setArguments(exps);
+		}
 		return null;
 	}
 	
