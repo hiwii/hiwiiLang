@@ -1191,9 +1191,9 @@ public class SystemParser implements ScriptParserConstants{
 						if(brace){
 							FunctionMappingBrace fm = new FunctionMappingBrace();
 							fm.setName(begin.image);
-							fm.setFargs(fargs);
-							fm.setMargs(margs);
-							fm.setComms(comms);
+							fm.setArguments(fargs);
+							fm.setExpressions(margs);
+							fm.setStatements(comms);
 							ret = fm;
 							end = f;
 						}else{
@@ -1435,9 +1435,9 @@ public class SystemParser implements ScriptParserConstants{
 						if(brace){
 							FunctionMappingBrace fm = new FunctionMappingBrace();
 							fm.setName(begin.image);
-							fm.setFargs(fargs);
-							fm.setMargs(margs);
-							fm.setComms(comms);
+							fm.setArguments(fargs);
+							fm.setExpressions(margs);
+							fm.setStatements(comms);
 							ret = fm;
 							end = f;
 						}else{

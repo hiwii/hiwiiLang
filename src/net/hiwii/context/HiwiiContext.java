@@ -56,6 +56,7 @@ import net.hiwii.expr.BraceExpression;
 import net.hiwii.expr.BracketExpression;
 import net.hiwii.expr.CharExpression;
 import net.hiwii.expr.FunctionExpression;
+import net.hiwii.expr.FunctionMappingBrace;
 import net.hiwii.expr.IdentifierExpression;
 import net.hiwii.expr.MappingExpression;
 import net.hiwii.expr.NullExpression;
@@ -69,6 +70,7 @@ import net.hiwii.expr.SubjectVerbAtom;
 import net.hiwii.expr.UnaryOperation;
 import net.hiwii.expr.adv.FunctionBrace;
 import net.hiwii.expr.adv.IdentifierBrace;
+import net.hiwii.expr.adv.MappingBrace;
 import net.hiwii.expr.date.TimeValue;
 import net.hiwii.expr.entity.FunctionEntity;
 import net.hiwii.expr.sent.ConditionExpression;
@@ -735,8 +737,59 @@ public class HiwiiContext extends Entity {
 			if(subject == null){
 				return new HiwiiException();
 			}
-//			Expression arg = doInstance(sv.getAction());
-//			return subject.doCalculation(arg);
+			Expression verb = sv.getAction();
+			if(verb instanceof IdentifierExpression) {
+				IdentifierExpression ie = (IdentifierExpression) verb;
+				return doIdentifierCalculation(subject, ie.getName());
+			}
+			if(verb instanceof FunctionExpression) {
+				FunctionExpression fe = (FunctionExpression) verb;
+				List<Entity> list = new ArrayList<Entity>();
+				for(Expression arg:fe.getArguments()){
+					Entity ent = doCalculation(arg);
+					if(ent instanceof HiwiiException){
+						return ent;
+					}
+					list.add(ent);
+				}
+				return doFunctionCalculation(subject, fe.getName(), list);
+			}
+			if(verb instanceof MappingExpression) {
+				MappingExpression me = (MappingExpression) verb;
+				return doMappingCalculation(subject, me.getName(), me.getArguments());
+			}
+			if(verb instanceof IdentifierBrace) {
+				IdentifierBrace ie = (IdentifierBrace) verb;
+				return doIdentifierCalculation(subject, ie.getName(), ie.getConditions());
+			}
+			if(verb instanceof FunctionBrace) {
+				FunctionBrace fe = (FunctionBrace) verb;
+				List<Entity> list = new ArrayList<Entity>();
+				for(Expression arg:fe.getArguments()){
+					Entity ent = doCalculation(arg);
+					if(ent instanceof HiwiiException){
+						return ent;
+					}
+					list.add(ent);
+				}
+				return doFunctionCalculation(subject, fe.getName(), list, fe.getStatements());
+			}
+			if(verb instanceof MappingBrace) {
+				MappingBrace me = (MappingBrace) verb;
+				return doMappingCalculation(subject, me.getName(), me.getArguments(), me.getStatements());
+			}
+			if(verb instanceof FunctionMappingBrace) {
+				FunctionMappingBrace fe = (FunctionMappingBrace) verb;
+				List<Entity> list = new ArrayList<Entity>();
+				for(Expression arg:fe.getArguments()){
+					Entity ent = doCalculation(arg);
+					if(ent instanceof HiwiiException){
+						return ent;
+					}
+					list.add(ent);
+				}
+				return doFunctionCalculation(subject, fe.getName(), list, fe.getStatements());
+			}
 			return doCalculation(subject, sv.getAction());
 		}else if(expr instanceof ActionAtSubject){
 			ActionAtSubject sv = (ActionAtSubject) expr;
