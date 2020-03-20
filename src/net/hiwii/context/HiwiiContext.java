@@ -666,9 +666,13 @@ public class HiwiiContext extends Entity {
 		}
 		return null;
 	}
-
-	@Override
-	public Entity doCalculation(Expression expr){
+	
+	/**
+	 * 系统基本运算
+	 * @param expr
+	 * @return
+	 */
+	public Entity doLiteralCalculation(Expression expr) {
 		if(expr instanceof LambdaMapping){
 			return expr;
 		}
@@ -700,8 +704,15 @@ public class HiwiiContext extends Entity {
 		}else if(expr instanceof NullExpression){
 			return expr;
 		}
-
-
+		return null;
+	}
+	
+	@Override
+	public Entity doCalculation(Expression expr){
+		Entity value = doLiteralCalculation(expr);
+		if(value != null) {
+			return value;
+		}
 		if(expr instanceof BraceExpression){
 			BraceExpression prg = (BraceExpression) expr;
 			Expression ret = doProgramCalculation(prg);
@@ -1254,7 +1265,17 @@ public class HiwiiContext extends Entity {
 		return null;
 	}
 
+	/**
+	 * expression为非绑定宾语
+	 * @param subject
+	 * @param expr
+	 * @return
+	 */
 	public Entity doCalculation(Entity subject, Expression expr){
+		Entity value = doLiteralCalculation(expr);
+		if(value != null) {
+			return value;
+		}
 //		if(subject instanceof LambdaExpression){
 //			LambdaExpression le = (LambdaExpression) subject;
 //			if(expr instanceof IdentifierExpression){
@@ -1343,65 +1364,16 @@ public class HiwiiContext extends Entity {
 				return new HiwiiException();//operator not recognized
 			}
 			return doCalculation(subject, result);  //mapping or function
-		}else if(expr instanceof BracketExpression){
-			//            BracketExpression be = (BracketExpression) expr;
-			//            for(Expression comm:be.getArray()){
-			//                Expression ret = doContextAction(comm, adverbs);
-			//                if(ret instanceof HiwiiException){
-			//                    return ret;
-			//                }
-			//            }
-			return new NormalEnd();
-		}else if(expr instanceof ConditionExpression){
-			ConditionExpression ce = new ConditionExpression();
-			Expression body = ce.getBody();
-			List<Expression> cons = ce.getConditions();
-			RuntimeContext context = null;
-			context.doAction(body);
-			if(body instanceof IdentifierExpression){
-				try {
-					context = makeEnvironment(cons);
-					return context.doAction(body);
-				} catch (ApplicationException e) {
-					return new HiwiiException();
-				}
-			}else if(body instanceof FunctionExpression){
-				FunctionExpression fe = (FunctionExpression) body;
-				List<Entity> list = new ArrayList<Entity>();
-				for(Expression arg:fe.getArguments()){
-					Entity ent = doCalculation(arg);
-					list.add(ent);
-				}
-				context = makeEnvironment(list, cons);
+		}else if(expr instanceof Parentheses){
+			Parentheses paren = (Parentheses) expr;
+			if(paren.getArray().size() != 1) {
+				return new HiwiiException();
 			}
-			if(body instanceof SubjectVerb){
-				SubjectVerb sv = (SubjectVerb) expr;
-				Entity subj = doCalculation(subject, sv.getSubject());
-				Expression verb = sv.getAction();
-				if(verb instanceof IdentifierExpression){
-					context = makeEnvironment(subject, cons);
-				}else if(verb instanceof FunctionExpression){
-					FunctionExpression fe = (FunctionExpression) verb;
-					List<Entity> list = new ArrayList<Entity>();
-					for(Expression arg:fe.getArguments()){
-						Entity ent = doCalculation(arg);
-						list.add(ent);
-					}
-					context = makeEnvironment(subject, cons);
-				}else{
-					context = makeEnvironment(subject, cons);
-				}
-			}else{
-				try {
-					context = makeEnvironment(cons);
-				} catch (ApplicationException e) {
-					return new HiwiiException();
-				}
-			}
-			return context.doAction(body);
+			return doCalculation(subject, paren.getArray().get(0));
 		}
-//		return null; 
-		return doCalculation(expr);
+		
+		return null;
+//		return doCalculation(expr);
 	}
 
 	public Expression doDecision(Entity subject, Expression expr){
@@ -1880,18 +1852,25 @@ public class HiwiiContext extends Entity {
 //		return null;
 	}
 
-	public Expression doMappingCalculation(Entity subject, String name, List<Expression> args){
-		if(name.equals("return")) {
-			if(args.size() != 1) {
+	public Entity doMappingCalculation(Entity subject, String name, List<Expression> args){
+		if(name.equals("return")){
+			if(args.size() != 1){
 				return new HiwiiException();
-			}
-			
-		}else {
-			List<Expression> exps = expressionMapping(args);
-			MappingExpression ret = new MappingExpression();
-			ret.setName(name);
-			ret.setArguments(exps);
+			}			
+//			Entity ent = doCalculation
+			return doCalculation(subject, args.get(0));
 		}
+//		if(name.equals("return")) {
+//			if(args.size() != 1) {
+//				return new HiwiiException();
+//			}
+//			
+//		}else {
+//			List<Expression> exps = expressionMapping(args);
+//			MappingExpression ret = new MappingExpression();
+//			ret.setName(name);
+//			ret.setArguments(exps);
+//		}
 		return null;
 	}
 	
