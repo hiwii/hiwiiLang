@@ -94,6 +94,7 @@ import net.hiwii.struct.EntityProperty;
 import net.hiwii.system.LocalHost;
 import net.hiwii.system.SystemDefinition;
 import net.hiwii.system.SystemOperators;
+import net.hiwii.system.TheSystem;
 import net.hiwii.system.exception.ApplicationException;
 import net.hiwii.system.net.HostObject;
 import net.hiwii.system.syntax.bin.BinaryFormat;
@@ -1327,6 +1328,9 @@ public class HiwiiContext extends Entity {
 		if(expr instanceof IdentifierExpression){
 			IdentifierExpression ie = (IdentifierExpression) expr;
 			String name = ie.getName();
+			if(name.equals("System")) {
+				return new TheSystem();
+			}
 			Entity ret = doIdentifierCalculation(subject, name);
 			if(ret != null) {
 				return ret;
@@ -1346,9 +1350,12 @@ public class HiwiiContext extends Entity {
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
 			return doMappingCalculation(subject, name, me.getArguments());
-		}else if(expr instanceof SubjectVerb){
-			SubjectVerb sv = (SubjectVerb) expr;
+		}else if(expr instanceof SubjectOperation){
+			SubjectOperation sv = (SubjectOperation) expr;
 			Entity subj = doCalculation(subject, sv.getSubject());
+			if(subj instanceof TheSystem) {
+				return doCalculation(sv.getAction());
+			}
 			return doCalculation(subj, sv.getAction());
 		}else if(expr instanceof UnaryOperation){
 			UnaryOperation uo = (UnaryOperation) expr;
@@ -1782,6 +1789,18 @@ public class HiwiiContext extends Entity {
 	 * @return
 	 */
 	public Expression doMappingAction(Entity subject, String name, List<Expression> args){
+		if(name.equals("return")){
+			if(args.size() != 1){
+				return new HiwiiException();
+			}
+			ReturnResult ret = new ReturnResult();
+			Entity res = doCalculation(subject, args.get(0));
+			if(res instanceof HiwiiException){
+				return (Expression) res;
+			}
+			ret.setResult(res);
+			return ret;
+		}
 		if(subject instanceof Definition){
 			Definition inst = (Definition) subject;
 			Expression ret = doDefinitionMappingAction(inst, name, args);
@@ -1814,7 +1833,9 @@ public class HiwiiContext extends Entity {
 			if(args.size() != 2){
 				return new HiwiiException();
 			}
-			Entity value = doCalculation(subject, args.get(1));
+//			Entity value = doCalculation(subject, args.get(1));
+			//assign运算是否需要加入主语?
+			Entity value = doCalculation(args.get(1));
 			if(value instanceof HiwiiException){
 				return (Expression) value;
 			}
@@ -5194,7 +5215,8 @@ public class HiwiiContext extends Entity {
 		Expression result = null;
 		for(Expression expr:sents){
 			//只允许context操作
-			result = rc.doSilentAction(expr);
+//			result = rc.doSilentAction(expr);
+			result = rc.doAction(expr);
 			
 			if(result instanceof SkipReturn){
 				break; //consume skip identifier
@@ -5213,7 +5235,6 @@ public class HiwiiContext extends Entity {
 			}
 
 			if(result instanceof HiwiiException){
-				//				System.out.println("some exception happened!");
 				return result;
 			}
 		}
@@ -5225,10 +5246,10 @@ public class HiwiiContext extends Entity {
 		List<Expression> sents = prg.getArray();
 		Expression result = null;
 		for(Expression expr:sents){
-			result = rc.doSilentAction(expr);
-			if(result == null){
-				result = rc.doSilentAction(subject, expr);
-			}
+			result = rc.doAction(subject, expr);
+//			if(result == null){
+//				result = rc.doSilentAction(subject, expr);
+//			}
 
 			if(result instanceof SkipReturn){
 				break; //consume skip identifier

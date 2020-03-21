@@ -4690,7 +4690,7 @@ public class HiwiiDB {
 //				throw new ApplicationException("not found!");
 			}
 //			return getIdCalculation(inst, name, null);
-			Definition def = inst.getDefinition();
+			Definition def = EntityUtil.proxyGetDefinition(inst.getClassName());
 			return getIdCalculation(def, name, null);
 		}else{
 			
