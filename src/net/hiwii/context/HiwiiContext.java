@@ -1323,7 +1323,12 @@ public class HiwiiContext extends Entity {
 //		}
 		if(expr instanceof BraceExpression){
 			BraceExpression prg = (BraceExpression) expr;
-			return doProgramCalculation(subject, prg);
+			Entity ret = doProgramCalculation(subject, prg);
+			if(ret instanceof ReturnResult) {
+				ReturnResult rr = (ReturnResult) ret;
+				return rr.getResult();
+			}
+			return ret;
 		} 
 		if(expr instanceof IdentifierExpression){
 			IdentifierExpression ie = (IdentifierExpression) expr;
