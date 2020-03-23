@@ -847,6 +847,18 @@ public class HiwiiContext extends Entity {
 			IdentifierBrace ib = (IdentifierBrace) expr;
 			return doIdentifierCalculation(ib.getName(), ib.getConditions());
 		}
+		if(expr instanceof FunctionMappingBrace) {
+			FunctionMappingBrace fe = (FunctionMappingBrace) expr;
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression arg:fe.getArguments()){
+				Entity ent = doCalculation(arg);
+				if(ent instanceof HiwiiException){
+					return ent;
+				}
+				list.add(ent);
+			}
+			return doFunctionCalculation(fe.getName(), list, fe.getStatements());
+		}
 		return null;
 	}
 
