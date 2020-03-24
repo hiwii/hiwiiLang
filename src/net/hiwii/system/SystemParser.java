@@ -1199,8 +1199,8 @@ public class SystemParser implements ScriptParserConstants{
 						}else{
 							FunctionMapping fm = new FunctionMapping();
 							fm.setName(begin.image);
-							fm.setFargs(fargs);
-							fm.setMargs(margs);
+							fm.setArguments(fargs);
+							fm.setExpressions(margs);
 							ret = fm;
 							end = d;
 						}
@@ -1443,8 +1443,8 @@ public class SystemParser implements ScriptParserConstants{
 						}else{
 							FunctionMapping fm = new FunctionMapping();
 							fm.setName(begin.image);
-							fm.setFargs(fargs);
-							fm.setMargs(margs);
+							fm.setArguments(fargs);
+							fm.setExpressions(margs);
 							ret = fm;
 							end = d;
 						}

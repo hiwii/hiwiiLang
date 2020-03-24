@@ -715,6 +715,9 @@ public class Entity {
 	public Expression doMappingDecision(String name, List<Expression> args, List<Expression> adverb){
 		return null;
 	}
+	public Entity doFunctionCalculation(String name, List<Entity> args, List<Expression> margs, List<Expression> states){return null;}	
+	public Expression doFunctionAction(String name, List<Entity> args, List<Expression> margs, List<Expression> states){return null;}
+	public Expression doFunctionDecision(String name, List<Entity> args, List<Expression> margs, List<Expression> states){return null;}
 	/*****/
 	public Entity doIdentifierCalculation(Entity subject, String name, List<Expression> adverb){
 		return null;

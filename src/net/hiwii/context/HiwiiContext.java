@@ -56,6 +56,7 @@ import net.hiwii.expr.BraceExpression;
 import net.hiwii.expr.BracketExpression;
 import net.hiwii.expr.CharExpression;
 import net.hiwii.expr.FunctionExpression;
+import net.hiwii.expr.FunctionMapping;
 import net.hiwii.expr.FunctionMappingBrace;
 import net.hiwii.expr.IdentifierExpression;
 import net.hiwii.expr.MappingExpression;
@@ -847,6 +848,18 @@ public class HiwiiContext extends Entity {
 			IdentifierBrace ib = (IdentifierBrace) expr;
 			return doIdentifierCalculation(ib.getName(), ib.getConditions());
 		}
+		if(expr instanceof FunctionMapping) {
+			FunctionMapping fe = (FunctionMapping) expr;
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression arg:fe.getArguments()){
+				Entity ent = doCalculation(arg);
+				if(ent instanceof HiwiiException){
+					return ent;
+				}
+				list.add(ent);
+			}
+			return doFunctionCalculation(fe.getName(), list, fe.getExpressions());
+		}
 		if(expr instanceof FunctionMappingBrace) {
 			FunctionMappingBrace fe = (FunctionMappingBrace) expr;
 			List<Entity> list = new ArrayList<Entity>();
@@ -857,7 +870,7 @@ public class HiwiiContext extends Entity {
 				}
 				list.add(ent);
 			}
-			return doFunctionCalculation(fe.getName(), list, fe.getStatements());
+			return doFunctionCalculation(fe.getName(), list, fe.getExpressions(), fe.getStatements());
 		}
 		return null;
 	}
@@ -954,53 +967,22 @@ public class HiwiiContext extends Entity {
 			//                }
 			//            }
 			return new NormalEnd();
-		}else if(expr instanceof ConditionExpression){
-			ConditionExpression ce = new ConditionExpression();
-			Expression body = ce.getBody();
-			List<Expression> cons = ce.getConditions();
-			RuntimeContext context = null;
-			context.doAction(body);
-			if(body instanceof IdentifierExpression){
-				try {
-					context = makeEnvironment(cons);
-					return context.doAction(body);
-				} catch (ApplicationException e) {
-					return new HiwiiException();
-				}
-			}else if(body instanceof FunctionExpression){
-				FunctionExpression fe = (FunctionExpression) body;
-				List<Entity> list = new ArrayList<Entity>();
-				for(Expression arg:fe.getArguments()){
-					Entity ent = doCalculation(arg);
-					list.add(ent);
-				}
-				context = makeEnvironment(list, cons);
+		}else if(expr instanceof FunctionMapping){
+			FunctionMapping fm = (FunctionMapping) expr;
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression arg:fm.getExpressions()){
+				Entity ent = doCalculation(arg);
+				list.add(ent);
 			}
-			if(body instanceof SubjectVerb){
-				SubjectVerb sv = (SubjectVerb) expr;
-				Entity subject = doCalculation(sv.getSubject());
-				Expression verb = sv.getAction();
-				if(verb instanceof IdentifierExpression){
-					context = makeEnvironment(subject, cons);
-				}else if(verb instanceof FunctionExpression){
-					FunctionExpression fe = (FunctionExpression) verb;
-					List<Entity> list = new ArrayList<Entity>();
-					for(Expression arg:fe.getArguments()){
-						Entity ent = doCalculation(arg);
-						list.add(ent);
-					}
-					context = makeEnvironment(subject, cons);
-				}else{
-					context = makeEnvironment(subject, cons);
-				}
-			}else{
-				try {
-					context = makeEnvironment(cons);
-				} catch (ApplicationException e) {
-					return new HiwiiException();
-				}
+			return doFunctionDecision(fm.getName(), list, fm.getExpressions());
+		}else if(expr instanceof FunctionMappingBrace){
+			FunctionMappingBrace fm = (FunctionMappingBrace) expr;
+			List<Entity> list = new ArrayList<Entity>();
+			for(Expression arg:fm.getExpressions()){
+				Entity ent = doCalculation(arg);
+				list.add(ent);
 			}
-			return context.doAction(body);
+			return doFunctionDecision(fm.getName(), list, fm.getExpressions(), fm.getStatements());
 		}
 		return null;
 	}

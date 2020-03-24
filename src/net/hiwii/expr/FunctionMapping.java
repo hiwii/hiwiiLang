@@ -6,31 +6,31 @@ import net.hiwii.cognition.Expression;
 
 public class FunctionMapping extends Expression {
 	private String name;
-	private List<Expression> fargs;
-	private List<Expression> margs;
+	private List<Expression> arguments;
+	private List<Expression> expressions;
 	public String getName() {
 		return name;
 	}
 	public void setName(String name) {
 		this.name = name;
 	}
-	public List<Expression> getFargs() {
-		return fargs;
+	public List<Expression> getArguments() {
+		return arguments;
 	}
-	public void setFargs(List<Expression> fargs) {
-		this.fargs = fargs;
+	public void setArguments(List<Expression> arguments) {
+		this.arguments = arguments;
 	}
-	public List<Expression> getMargs() {
-		return margs;
+	public List<Expression> getExpressions() {
+		return expressions;
 	}
-	public void setMargs(List<Expression> margs) {
-		this.margs = margs;
+	public void setExpressions(List<Expression> expressions) {
+		this.expressions = expressions;
 	}
 	@Override
 	public String toString() {
 		String ret = name + "(";
 		int i = 0;
-		for(Expression exp:fargs){
+		for(Expression exp:arguments){
 			if(i == 0)
 				ret = ret + exp.toString();
 			else
@@ -39,7 +39,7 @@ public class FunctionMapping extends Expression {
 		}
 		ret = ret + ")[";
 		i = 0;
-		for(Expression exp:margs){
+		for(Expression exp:expressions){
 			if(i == 0)
 				ret = ret + exp.toString();
 			else
