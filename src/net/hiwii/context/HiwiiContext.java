@@ -3297,6 +3297,13 @@ public class HiwiiContext extends Entity {
 		return new HiwiiException();
 	}
 	
+	/**
+	 * declare[Calculation:x, random]
+	 * declare[Calculation:f(x), x+1]
+	 * @param source
+	 * @param expr
+	 * @return
+	 */
 	public Expression doDeclare(Expression source, Expression expr){
 		if(source instanceof BinaryOperation){
 			BinaryOperation bo = (BinaryOperation) source;
