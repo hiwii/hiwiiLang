@@ -2600,7 +2600,17 @@ public class HiwiiDB {
 		head.setType(type);
 		List<String> args = new ArrayList<String>();
 		for(Expression exp:func.getArguments()) {
-			args.add(exp.toString());
+			if(exp instanceof IdentifierExpression) {
+				IdentifierExpression ie = (IdentifierExpression) exp;
+				Definition def = EntityUtil.proxyGetDefinition(ie.getName());
+				if(def == null) {
+					throw new ApplicationException();
+				}
+				args.add(ie.getName());
+			}else {
+				throw new ApplicationException();
+			}
+//			args.add(exp.toString());
 		}
 		head.setArgumentType(args);
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
