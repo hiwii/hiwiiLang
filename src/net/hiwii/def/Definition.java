@@ -721,6 +721,9 @@ public class Definition extends HiwiiInstance {
 		return false;
 	}
 	
+	public boolean belongto(Definition def) {
+		return false;
+	}
 	@Override
 	public String toString() {
 		return name;

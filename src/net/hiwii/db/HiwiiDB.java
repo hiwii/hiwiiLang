@@ -2625,6 +2625,41 @@ public class HiwiiDB {
 		functionLink.put(txn, theKey, theData);
 	}
 	
+	public List<FunctionHead> getFunctionLink(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+		try {
+			cursor = indexFunctionLink.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match = true;
+				FunctionHead head = binding.entryToObject(data);
+				for(Expression expr:func.getArguments()) {
+					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), head.getArgumentType().get(i))) {
+						match = false;
+						break;
+					}
+				}
+				if(match) {
+					String ret = new String(key.getData(), "UTF-8");
+					return ret;
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return null;
+	}
+	
 	public String getFunctionLinkKey(String name, List<Entity> args, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		SecondaryCursor cursor = null;
