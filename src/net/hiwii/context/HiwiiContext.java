@@ -1298,16 +1298,16 @@ public class HiwiiContext extends Entity {
 //			}
 //			return new HiwiiException();
 //		}
-		if(subject instanceof HostObject){
-			HostObject ho = (HostObject) subject;
-			String ret = ho.doRemoteCalculation(expr);
-			Entity ent = doCalculation(StringUtil.parseString(ret));
-			return ent;
-		}
-		if(subject instanceof Definition){
-			Definition def = (Definition)subject;
-			return doDefinitionCalculation(def, expr);
-		}
+//		if(subject instanceof HostObject){
+//			HostObject ho = (HostObject) subject;
+//			String ret = ho.doRemoteCalculation(expr);
+//			Entity ent = doCalculation(StringUtil.parseString(ret));
+//			return ent;
+//		}
+//		if(subject instanceof Definition){
+//			Definition def = (Definition)subject;
+//			return doDefinitionCalculation(def, expr);
+//		}
 //		if(subject instanceof HiwiiInstance){
 //			HiwiiInstance inst = (HiwiiInstance) subject;
 //			if(expr instanceof IdentifierExpression){
@@ -4021,8 +4021,8 @@ public class HiwiiContext extends Entity {
 		if(cogn.equals("Definition")){
 			return dropDefinition(right);
 			//doDefine(right);
-		}else if(cogn.equals("Symbol")){ 
-			//			return newStatus(right);
+		}else if(cogn.equals("Link")){ 
+			return undefineLink(right);
 		}else if(cogn.equals("Status")){ //原为new(Status
 			//			return newStatus(right);
 		}else if(cogn.equals("Verb")){
@@ -6026,7 +6026,7 @@ public class HiwiiContext extends Entity {
 		} catch (IOException e) {
 			return new HiwiiException();
 		} catch (ApplicationException e) {
-			return new HiwiiException();
+			return new HiwiiException(e.getMessage());
 		} catch (Exception e) {
 			return new HiwiiException();
 		}finally{
@@ -6040,29 +6040,34 @@ public class HiwiiContext extends Entity {
 	}
 	
 	public Expression undefineLink(Expression right){
-		String prop = null;
-
-		if(right instanceof IdentifierExpression){
-			IdentifierExpression ie = (IdentifierExpression) right;
-			prop = ie.getName();
-		}else{
-			return new HiwiiException();
-		}
-
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		Transaction txn = null;
 		try {
 			txn = db.beginTransaction();
-			db.deleteProperty(prop, null);
+			if(right instanceof IdentifierExpression){
+				IdentifierExpression ie = (IdentifierExpression) right;
+				db.deleteProperty(ie.getName(), null);
+			}else if(right instanceof FunctionExpression){
+				FunctionExpression fe = (FunctionExpression) right;
+//				for(Expression exp:fe.getArguments()) {
+//					
+//				}
+				db.deleteFunctionLink(fe, txn);
+			}else{
+				return new HiwiiException();
+			}
+			
 			txn.commit();
 		} catch (DatabaseException e) {
+			e.printStackTrace();
 			return new HiwiiException();
 		} catch (IOException e) {
 			return new HiwiiException();
 		} catch (ApplicationException e) {
 			return new HiwiiException();
 		} catch (Exception e) {
-			return new HiwiiException();
+			e.printStackTrace();
+//			return new HiwiiException();
 		}finally{
 			if (txn != null) {
 				txn.abort();
@@ -6091,6 +6096,17 @@ public class HiwiiContext extends Entity {
 			} catch (ApplicationException e) {
 				return new HiwiiException();
 			} catch (Exception e) {
+				return new HiwiiException();
+			}
+		}else if(right instanceof FunctionExpression){
+			FunctionExpression fe = (FunctionExpression) right;
+			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			try {
+				boolean bool = db.hasFunctionLink(fe, null);
+				return EntityUtil.decide(bool);
+			}catch (DatabaseException e) {
+				return new HiwiiException();
+			}catch (Exception e) {
 				return new HiwiiException();
 			}
 		}else{
@@ -7550,7 +7566,9 @@ public class HiwiiContext extends Entity {
 	 * new([operation|calculation|decision]@Definition:id/function@condition=expression)
 	 * 计算机语言通常用function(type1 x, type2 y...)形式表示函数，
 	 * 而数学中，通常用function(x, y...){x.belongTo[type1], y.belongTo[type2]}
-	 * hiwii语言使用数学的方式表示函数。
+	 * hiwii语言函数声明格式：
+	 * declare[Calculation:f(Integer:x|条件...), 表达式]
+	 * 如果条件为空，则"|"去除。
 	 * type表示抽象。抽象定义是一个特殊的名词。
 	 * @param expr
 	 * @return
@@ -7589,8 +7607,10 @@ public class HiwiiContext extends Entity {
 					return new HiwiiException();
 				}
 				IdentifierExpression id = (IdentifierExpression) so.getSubject();
-				Definition def = EntityUtil.proxyGetDefinition(id.getName());
-				if(def != null){
+//				Definition def = EntityUtil.proxyGetDefinition(id.getName());
+				Entity target = doCalculation(id);
+				if(target instanceof Definition){
+					Definition def = (Definition) target;
 					if(so.getAction() instanceof IdentifierExpression){
 						IdentifierExpression ie = (IdentifierExpression) so.getAction();
 						Declaration dec = new Declaration();
@@ -7605,27 +7625,42 @@ public class HiwiiContext extends Entity {
 						}
 					}else if(so.getAction() instanceof FunctionExpression){
 						FunctionExpression fe = (FunctionExpression) so.getAction();
-						name = fe.getName();
-						FunctionDeclaration fd = new FunctionDeclaration();
-//						fd.setName(name);
-						try {
-							List<Argument> args = EntityUtil.parseArguments(fe.getArguments());
-//							fd.setArguments(args);
-						} catch (ApplicationException e) {
-							return new HiwiiException();//参数错误
-						}
-
-						fd.setStatement(expr);
-//						if(type == 'c'){
-//							db.putFunCalculation(fd, null);
-//						}else if(type == 'd'){
+						
+						if(type == 'c'){
+							db.putFunctionCalculation(def, fe, expr, null);
+						}else if(type == 'd'){
 //							db.putFunDecision(fd, null);
-//						}else{
+						}else{
 //							db.putFunAction(fd, null);
-//						}
+						}
 					}
-				}
-				
+				}else if(target instanceof HiwiiInstance){
+					HiwiiInstance inst = (HiwiiInstance) target;
+					if(so.getAction() instanceof IdentifierExpression){
+						IdentifierExpression ie = (IdentifierExpression) so.getAction();
+						Declaration dec = new Declaration();
+						dec.setName(ie.getName());
+						dec.setStatement(expr);
+						if(type == 'c'){
+							db.putIdCalculation(name, expr.toString(), null);
+						}else if(type == 'd'){
+
+						}else{
+
+						}
+					}else if(so.getAction() instanceof FunctionExpression){
+						FunctionExpression fe = (FunctionExpression) so.getAction();
+						
+						if(type == 'c'){
+							db.putFunctionCalculation_Inst(inst, fe, expr, null);
+						}else if(type == 'd'){
+//							db.putFunDecision(fd, null);
+						}else{
+//							db.putFunAction(fd, null);
+						}
+					}
+
+				}			
 			}else{
 				return new HiwiiException();
 			}

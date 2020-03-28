@@ -340,10 +340,14 @@ public class EntityUtil {
 			throws DatabaseException, IOException, ApplicationException, Exception{
 		Definition def1 = proxyGetDefinition(subject);
 		Definition def2 = proxyGetDefinition(target);
+		if(def1 == null || def2 == null) {
+			throw new ApplicationException("undefined definition.");
+		}
 		String sig0 = def1.takeSignature();
 		String sig1 = def2.takeSignature();
 		return StringUtil.matched(sig0, sig1);
 	}
+	
 	public static boolean judgeDefinitionIsAnother(Definition subject, Definition target){
 		String sig0 = subject.takeSignature();
 		String sig1 = target.takeSignature();
@@ -2176,12 +2180,23 @@ public class EntityUtil {
 				ret.add(ie.getName());
 			}else if(arg instanceof BinaryOperation) {
 				BinaryOperation bo = (BinaryOperation) arg;
-				if(!bo.getOperator().equals("->")) {
+				if(!bo.getOperator().equals("")) {
 					throw new ApplicationException();
 				}
-				if(bo.getLeft() instanceof IdentifierExpression) {
-					IdentifierExpression ie = (IdentifierExpression) bo.getLeft();
+				if(bo.getRight() instanceof IdentifierExpression) {
+					IdentifierExpression ie = (IdentifierExpression) bo.getRight();
 					ret.add(ie.getName());
+				}else if(bo.getRight() instanceof BinaryOperation) {
+					BinaryOperation form = (BinaryOperation) bo.getRight();
+					if(!form.getOperator().equals("|")) {
+						throw new ApplicationException();
+					}
+					if(form.getLeft() instanceof IdentifierExpression) {
+						IdentifierExpression ie = (IdentifierExpression) bo.getLeft();
+						ret.add(ie.getName());
+					}else {
+						throw new ApplicationException();
+					}
 				}else {
 					throw new ApplicationException();
 				}
@@ -2203,12 +2218,12 @@ public class EntityUtil {
 				ret.add(new NullExpression());
 			}else if(arg instanceof BinaryOperation) {
 				BinaryOperation bo = (BinaryOperation) arg;
-				if(!bo.getOperator().equals("->")) {
+				if(!bo.getOperator().equals("")) {
 					throw new ApplicationException();
 				}
 				if(bo.getLeft() instanceof IdentifierExpression) {
-					Expression right = bo.getRight();
-					ret.add(right);
+					Expression left = bo.getLeft();
+					ret.add(left);
 				}else {
 					throw new ApplicationException();
 				}

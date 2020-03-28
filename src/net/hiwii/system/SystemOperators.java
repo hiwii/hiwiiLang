@@ -58,6 +58,7 @@ public class SystemOperators {
 		opmap.put(";", new TwoTuple<String, Integer>("SEMI", -30));
 		//lambda定义， lambda 操作符被绑定到它后面的整个表达式。应用@，左结合
 		opmap.put("=>", new TwoTuple<String, Integer>("lambda", -40));
+		opmap.put("", new TwoTuple<String, Integer>("Space", -100));
 		
 	}
 	public static boolean isOperator(String op){

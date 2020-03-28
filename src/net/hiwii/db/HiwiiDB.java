@@ -51,6 +51,7 @@ import net.hiwii.db.key.DefinitionFunctionKeyCreater;
 import net.hiwii.db.key.DefinitionSignKeyCreater;
 import net.hiwii.db.key.EntityPartKeyCreater;
 import net.hiwii.db.key.FunctionHeadKeyCreater;
+import net.hiwii.db.key.InstanceFunctionKeyCreater;
 import net.hiwii.db.key.InstanceNameKeyCreater;
 import net.hiwii.db.key.InstanceTypeKeyCreater;
 import net.hiwii.db.key.MultiFunctionKeyCreater;
@@ -93,10 +94,11 @@ import net.hiwii.view.HiwiiInstance;
 import net.hiwii.view.ProjectedObject;
 
 /**
- * "&" Link Id and definitionSignature.
- * "@" Link Id and InstanceUUID
- * "#" Link  function or mapping and argumentNumber. e.g.f#3%000123 //one function:f(x,y,z)
+ * "@" Link Id and definitionSignature.
+ * "&" Link Id and InstanceUUID
+ * "#" Link function or mapping and argumentNumber. e.g.f#3%000123 //one function:f(x,y,z)
  * "%" Link function or mapping and randomUUID
+ * "^" Link function definition and declaration randomUUID
  * DBList
  * 1,对象 entityDatabase
  * 2,Link/State/Switch,PropertyDef
@@ -164,7 +166,10 @@ public class HiwiiDB {
 	SecondaryDatabase indexfAction = null;
 	
 	Database fCalculationDef = null;
-	SecondaryDatabase indexfCalculationDef = null;	
+	SecondaryDatabase indexfCalculationDef = null;
+	
+	Database fCalculationInst = null;
+	SecondaryDatabase indexfCalculationInst = null;
 	
 	Database defInDef = null;
 	Database propInDef = null;
@@ -357,6 +362,11 @@ public class HiwiiDB {
 			indexfCalculationDef = myDbEnvironment.openSecondaryDatabase(null, "indexfCalculationDef", fCalculationDef, 
 					mySecConfig);
 			
+			fCalculationInst = myDbEnvironment.openDatabase(null, "fCalculationInst", dbconf);
+			mySecConfig.setKeyCreator(new InstanceFunctionKeyCreater());
+			indexfCalculationInst = myDbEnvironment.openSecondaryDatabase(null, "indexfCalculationInst", fCalculationDef, 
+					mySecConfig);
+			
 			
 			userDatabase = myDbEnvironment.openDatabase(null, "userDatabase", dbconf);
 			groupDatabase = myDbEnvironment.openDatabase(null, "groupDatabase", dbconf);
@@ -538,7 +548,12 @@ public class HiwiiDB {
 			if (fCalculationDef != null) {
 				fCalculationDef.close();
 			}
-			
+			if (indexfCalculationInst != null) {
+				indexfCalculationInst.close();
+			}
+			if (fCalculationDef != null) {
+				fCalculationDef.close();
+			}
 			
 			if (idCalculation != null) {
 				idCalculation.close();
@@ -2616,10 +2631,10 @@ public class HiwiiDB {
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 
-	    OperationStatus status = idLink.get(null, theKey, theData, LockMode.DEFAULT);
-		if(status == OperationStatus.SUCCESS){
-			throw new ApplicationException();
-		}
+	    List<FunctionHead> result = getFunctionLink(func, txn);
+	    if(!(result.size() == 0 || result == null)) {
+	    	throw new ApplicationException("has defined function.");
+	    }
 		TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
 		binding.objectToEntry(head, theData);
 		functionLink.put(txn, theKey, theData);
@@ -2633,6 +2648,64 @@ public class HiwiiDB {
 		DatabaseEntry key = new DatabaseEntry();
 	    DatabaseEntry data = new DatabaseEntry();
 	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+	    List<FunctionHead> result = new ArrayList<FunctionHead>();
+		try {
+			cursor = indexFunctionLink.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match1 = true, match2 = true;
+				FunctionHead head = binding.entryToObject(data);
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(type, head.getArgumentType().get(i))) {
+						match1 = false;
+						break;
+					}
+				}
+				//需要判定两次。函数定义即不能包容以前，也不能被以前的函数包容。
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+						match2 = false;
+						break;
+					}
+				}
+				
+				if(match1 && match2) {
+//					String ret = new String(key.getData(), "UTF-8");
+					result.add(head);
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+	    	return result;
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
+	public boolean hasFunctionLink(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		List<FunctionHead> result = getFunctionLink(func, txn);
+		if(result.size() == 0 || result == null) {
+			return false;
+		}else {
+			return true;
+		}
+	}
+	
+	public FunctionHead deleteFunctionLink(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+//	    List<FunctionHead> result = new ArrayList<FunctionHead>();
 		try {
 			cursor = indexFunctionLink.openCursor(txn, null);
 			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
@@ -2640,24 +2713,32 @@ public class HiwiiDB {
 	    	while (found == OperationStatus.SUCCESS)  {
 				boolean match = true;
 				FunctionHead head = binding.entryToObject(data);
-				for(Expression expr:func.getArguments()) {
-					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), head.getArgumentType().get(i))) {
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+//					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+//						match = false;
+//						break;
+//					}
+					if(!head.getArgumentType().get(i).equals(type)) {
 						match = false;
 						break;
 					}
 				}
+				
 				if(match) {
-					String ret = new String(key.getData(), "UTF-8");
-					return ret;
+					cursor.delete();
+					return head;
 				}
 	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
 	    	}
+//	    	return null;
+	    	throw new ApplicationException("not found!");
 		}finally  {			
 			if (cursor != null) {
 				cursor.close();
 			}
 		}
-		return null;
 	}
 	
 	public String getFunctionLinkKey(String name, List<Entity> args, Transaction txn)
@@ -2698,7 +2779,18 @@ public class HiwiiDB {
 		return null;
 	}
 	
-	public String getFunctionLinkKey(FunctionExpression func, Transaction txn)
+	/**
+	 * declare[Calculation:f(Integer x), expression]
+	 * 当类型是Object，可以省略
+	 * @param func
+	 * @param txn
+	 * @return
+	 * @throws IOException
+	 * @throws DatabaseException
+	 * @throws ApplicationException
+	 * @throws Exception
+	 */
+	public String getFunctionLinkKeyByDeclare(FunctionExpression func, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		SecondaryCursor cursor = null;
 		String str = func.getName() + "#" + func.getArguments().size();
@@ -2721,16 +2813,25 @@ public class HiwiiDB {
 				for(int i=0;i<len;i++) {
 					Expression exp = func.getArguments().get(i);
 					BinaryOperation bo = null;
+					String type = null;
 					if(exp instanceof BinaryOperation) {
 						bo = (BinaryOperation) exp;
-					}else {
+						if(!bo.getOperator().equals("")) {
+							throw new ApplicationException();
+						}
+						if(!(bo.getLeft() instanceof IdentifierExpression)) {
+							throw new ApplicationException();
+						}
+						IdentifierExpression ie = (IdentifierExpression) bo.getLeft();
+						type = ie.getName();
+					}else if(exp instanceof IdentifierExpression){
+//						IdentifierExpression ie = (IdentifierExpression) exp;变量名
+						type = "Object";
+					}else {						
 						throw new ApplicationException();
 					}
-					if(!bo.getOperator().equals("->")) {
-						throw new ApplicationException();
-					}
-					Expression argtype = bo.getRight();
-					if(!EntityUtil.judgeAbstractionIsAnother(argtype, head.getArgumentType().get(i))) {
+					
+					if(!EntityUtil.judgeDefinitionIsAnother(type, head.getArgumentType().get(i))) {
 						match = false;
 					}
 				}
@@ -2889,7 +2990,7 @@ public class HiwiiDB {
 	
 	public Entity getAssignment(HiwiiInstance inst, String pname,Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = pname + "@" + inst.getUuid();
+		String key = pname + "&" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 	    
@@ -2905,7 +3006,7 @@ public class HiwiiDB {
 	
 	public Entity getPropertyValue(String instId, String pname,Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = pname + "@" + instId;
+		String key = pname + "&" + instId;
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 	    
@@ -3440,7 +3541,7 @@ public class HiwiiDB {
 	
 	public void putInstanceJudgment(HiwiiInstance inst, String name, JudgmentResult result, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "@" + inst.getUuid();
+		String key = name + "&" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 
@@ -3455,7 +3556,7 @@ public class HiwiiDB {
 	
 	public void putSwitchResult(HiwiiInstance inst, String name, String value, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "@" + inst.getUuid();
+		String key = name + "&" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(value.getBytes("UTF-8"));
 
@@ -3471,7 +3572,7 @@ public class HiwiiDB {
 	
 	public void updateInstanceJudgment(HiwiiInstance inst, String name, JudgmentResult result, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "@" + inst.getUuid();
+		String key = name + "&" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 
@@ -3516,7 +3617,7 @@ public class HiwiiDB {
 
 	public JudgmentResult getInstanceJudgment(HiwiiInstance inst, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "@" + inst.getUuid();
+		String key = name + "&" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 		OperationStatus status = judgeDatabase.get(null, theKey, theData, LockMode.DEFAULT);
@@ -3536,7 +3637,7 @@ public class HiwiiDB {
 	
 	public JudgmentResult getDefinitionJudgment(Definition def, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "#" + def.getSignature();
+		String key = name + "@" + def.getSignature();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 		Cursor cur = fCalculation.openCursor(null, null);
@@ -3700,7 +3801,7 @@ public class HiwiiDB {
 	
 	public void putInstIdCalculation(HiwiiInstance inst, String name, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + '#' + inst.getUuid();
+		String key = name + '&' + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
@@ -3714,7 +3815,7 @@ public class HiwiiDB {
 	
 	public String getInstIdCalculation(HiwiiInstance inst, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + '#' + inst.getUuid();
+		String key = name + '&' + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 
@@ -3742,7 +3843,7 @@ public class HiwiiDB {
 	
 	public void putIdAction(HiwiiInstance inst, String name, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + '#' + inst.getUuid();
+		String key = name + '&' + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
@@ -3816,7 +3917,7 @@ public class HiwiiDB {
 	
 	public String getIdCalculation(HiwiiInstance inst, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + '#' + inst.getUuid();
+		String key = name + '&' + inst.getUuid();
 		
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry data = new DatabaseEntry();
@@ -3863,11 +3964,11 @@ public class HiwiiDB {
 	
 	public void putFunctionCalculation(FunctionExpression source, Expression expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKey(source, txn);
+		String fkey = getFunctionLinkKeyByDeclare(source, txn);
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
-		String key = fkey + "&" + EntityUtil.getUUID();
+		String key = fkey + "^" + EntityUtil.getUUID();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 
@@ -3882,7 +3983,7 @@ public class HiwiiDB {
 	
 	public void putFunctionCalculation(Definition def, FunctionExpression source, Expression expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKey(source, txn);
+		String fkey = getFunctionLinkKeyByDeclare(source, txn);
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
@@ -3898,6 +3999,26 @@ public class HiwiiDB {
 		TupleBinding<FunctionDeclaration> dataBinding = new FunctionDeclarationBinding();
 		dataBinding.objectToEntry(dec, theData);
 		fCalculationDef.put(txn, theKey, theData);
+	}
+	
+	public void putFunctionCalculation_Inst(HiwiiInstance inst, FunctionExpression source, Expression expr, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = getFunctionLinkKeyByDeclare(source, txn);
+		if(fkey == null) {
+			throw new ApplicationException();
+		}
+	
+		String key = fkey + "&" + inst.getUuid() + "%" + EntityUtil.getUUID();
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+
+		FunctionDeclaration dec = new FunctionDeclaration();
+		dec.setStatement(expr);
+		dec.setArguments(EntityUtil.getFunctionArgument(source));
+		dec.setArgType(EntityUtil.getFunctionArgumentType(source));
+		TupleBinding<FunctionDeclaration> dataBinding = new FunctionDeclarationBinding();
+		dataBinding.objectToEntry(dec, theData);
+		fCalculationInst.put(txn, theKey, theData);
 	}
 	
 	public FunctionDeclaration getFunctionCalculation(Entity subject, String name, List<Entity> args, Transaction txn)
@@ -4252,8 +4373,58 @@ public class HiwiiDB {
 				if(match) {
 					return fd;
 				}
-//	    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
-	    		found = cursor.getLast(theKey, pkey, data, LockMode.DEFAULT);
+	    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
+//	    		found = cursor.getLast(theKey, pkey, data, LockMode.DEFAULT);
+	    	}
+	    }catch(DatabaseException e) {
+	    	throw new ApplicationException();
+	    } finally  {
+	    	try {
+	    		if (cursor != null) {
+	    			cursor.close();
+	    		}
+	    	} catch(DatabaseException e) {
+	    		throw new ApplicationException();
+	    	}
+	    }
+		return null;
+	}
+	
+	public FunctionDeclaration getFunctionCalculation_Inst(HiwiiInstance inst, String name, List<Entity> args, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = getFunctionLinkKey(name, args, txn);
+		if(fkey == null) {
+			return null;
+		}
+		SecondaryCursor cursor = null;
+		cursor = indexfCalculationInst.openCursor(null, null);
+		String key = fkey + "&" + inst.getUuid();
+		
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry pkey = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    
+	    TupleBinding<FunctionDeclaration> binding = new FunctionDeclarationBinding();
+	    try {
+	    	OperationStatus found = cursor.getSearchKeyRange(theKey, pkey, data, LockMode.DEFAULT);
+	    	while (found == OperationStatus.SUCCESS)  {
+	    		String key0 = new String(theKey.getData(), "UTF-8");
+	    		if(!StringUtil.matched(key, key0)){
+	    			break;
+	    		}
+	    		FunctionDeclaration fd = binding.entryToObject(data);
+				boolean match = true;
+				for(int i=0;i<args.size();i++) {
+					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), fd.getArguments().get(i), fd.getArgType().get(i))) {
+						match = false;
+						break;
+					}
+				}
+				if(match) {
+					return fd;
+				}
+	    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
+//	    		found = cursor.getLast(theKey, pkey, data, LockMode.DEFAULT);
 	    	}
 	    }catch(DatabaseException e) {
 	    	throw new ApplicationException();

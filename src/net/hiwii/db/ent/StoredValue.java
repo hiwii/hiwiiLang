@@ -2,6 +2,13 @@ package net.hiwii.db.ent;
 
 /**
  * sign为了保证能够按照signature排序
+ * type :
+ * e:Entity
+ * t:Time
+ * u:User
+ * s:shortString
+ * i:InstanceId
+ * 
  * @author hiwii
  *
  */

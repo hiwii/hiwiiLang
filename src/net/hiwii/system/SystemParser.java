@@ -995,7 +995,62 @@ public class SystemParser implements ScriptParserConstants{
 //				av.setVerb(pe0.getExpression());
 //				formula = av;
 			}else{
-				throw new ApplicationException("err");
+				//空格分隔的表达式也是binaryOperation的一种特殊情形。空格的优先级低于所有操作符。
+
+				String op = "";
+//				if(begin == lastToken){
+//					break;
+//				}
+//				begin = fetchNext(begin);
+				ParsedExpression pe1 = getParsedExpression(begin, lastToken);
+				Expression operand = pe1.getExpression();
+				if(formula instanceof BinaryOperation){
+					BinaryOperation bo = (BinaryOperation) formula;
+					if(SystemOperators.compare(bo.getOperator(), op) >= 0){
+						BinaryOperation tmp = new BinaryOperation();
+						tmp.setLeft(formula);
+						tmp.setOperator(op);
+						tmp.setRight(operand);
+						formula = tmp;
+					}else{
+						//if当前操作符优先级高于原binary operator，不改变原formula，只改变右侧元素。
+						BinaryOperation top = bo;
+						while(true){
+							Expression right = top.getRight();
+							if(right instanceof BinaryOperation){
+								BinaryOperation rnode = (BinaryOperation)right;
+								if(SystemOperators.compare(rnode.getOperator(), op) >= 0){
+									BinaryOperation tmp = new BinaryOperation();
+									tmp.setLeft(right);
+									tmp.setOperator(op);
+									tmp.setRight(operand);
+									top.setRight(tmp);
+									break;
+								}else{
+									top = (BinaryOperation) right;
+									continue;
+								}
+							}else{
+								BinaryOperation node = new BinaryOperation();
+								node.setLeft(top.getRight());
+								node.setOperator(op);
+								node.setRight(operand);
+								top.setRight(node);
+								break;
+							}
+						}
+					}
+				}else{
+					Expression left = formula;
+					BinaryOperation bin = new BinaryOperation();
+					bin.setLeft(left);
+					bin.setRight(operand);
+					bin.setOperator(op);
+					formula = bin;
+				}
+				end = pe1.getEnd();
+			
+//				throw new ApplicationException("err");
 			}
 			
 			if(end == lastToken){
