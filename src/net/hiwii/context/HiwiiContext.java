@@ -45,6 +45,7 @@ import net.hiwii.def.SimpleDefinition;
 import net.hiwii.def.TypeView;
 import net.hiwii.def.decl.ConditionDeclaration;
 import net.hiwii.def.decl.FunctionDeclaration;
+import net.hiwii.def.decl.MappingDeclaration;
 import net.hiwii.def.list.Array;
 import net.hiwii.def.list.ListClass;
 import net.hiwii.def.list.SetClass;
@@ -743,7 +744,12 @@ public class HiwiiContext extends Entity {
 		}else if(expr instanceof MappingExpression){
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
-			return doMappingCalculation(name, me.getArguments());
+			List<Expression> list = new ArrayList<Expression>();
+			for(Expression exp:me.getArguments()) {
+				Expression ret = doLambdaCalculation(exp);
+				list.add(ret);
+			}
+			return doMappingCalculation(name, list);
 		}else if(expr instanceof SubjectOperation){
 			SubjectOperation sv = (SubjectOperation) expr;
 			Entity subject = doCalculation(sv.getSubject());
@@ -1153,13 +1159,52 @@ public class HiwiiContext extends Entity {
 		}
 		return ret;
 	}
+	
+	/**
+	 * lambda运算，输入一个表达式，输出一个表达式。
+	 * @param expr
+	 * @return
+	 */
+	public Expression doLambdaCalculation(Expression expr){
+		if(expr instanceof IdentifierExpression) {
+			IdentifierExpression ie = (IdentifierExpression) expr;
+			return doIdentifierLambdaCalculation(ie);
+		}else if(expr instanceof FunctionExpression) {
+			FunctionExpression func = (FunctionExpression) expr;
+			return doFunctionLambdaCalculation(func);
+		}
+		return expr;
+	}
+	
+	public Expression doIdentifierLambdaCalculation(IdentifierExpression expr) {
+		for(RuntimeContext context:this.getLadder().getChains()){
+			if(context.getExpressions().containsKey(expr.getName())){
+				return context.getExpressions().get(expr.getName());
+			}
+		}
+		return expr;
+	}
+	
+	public Expression doFunctionLambdaCalculation(FunctionExpression func) {
+		if(func.getName().equals("toExpression")){
+			if(func.getArguments().size() != 1) {
+				return new HiwiiException();
+			}
+			Entity ent = doCalculation(func.getArguments().get(0));
+			if(!(ent instanceof StringExpression)) {
+				return new HiwiiException();
+			}
+			StringExpression se = (StringExpression) ent;
+			return se.toExpression();
+		}
+		return func;
+	}
 	/**
 	 * 只有两种形式参数，小括号形式参数表示entity参数
 	 * 中括号参数表示表达式参数。
 	 * 没有括号的其它表达式表示一个参数的小括号entity。
 	 */
-	@Override
-	public Expression doLambda(Expression source, Expression arg) {
+	public Expression doLambdaApplication(Expression source, Expression arg) {
 		if(arg instanceof Parentheses){
 			Parentheses par = (Parentheses) arg;
 			List<Entity> ents = new ArrayList<Entity>();
@@ -1182,9 +1227,6 @@ public class HiwiiContext extends Entity {
 		return null;
 	}
 	
-	public Expression doLambdaExpression(Expression source, List<Expression> entities){
-		return null;
-	}
 	
 	/**
 	 * entity#doAction
@@ -1344,7 +1386,12 @@ public class HiwiiContext extends Entity {
 				Entity ent = doCalculation(subject, arg);
 				list.add(ent);
 			}
-			return doFunctionCalculation(subject, name, list);
+			Entity ret = doFunctionCalculation(subject, name, list);
+			if(ret != null) {
+				return ret;
+			}else {
+				return doFunctionCalculation(name, list);
+			}
 		}else if(expr instanceof MappingExpression){
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
@@ -1927,12 +1974,10 @@ public class HiwiiContext extends Entity {
 			if(context.getRefers().containsKey(name)){
 				return context.getRefers().get(name);
 			}
-			if(context.getExpressions().containsKey(name)){
-				return context.getExpressions().get(name);
-			}
-			if(context.getExpressionST().containsKey(name)){
-				return context.getExpressionST().get(name);
-			}
+//			
+//			if(context.getExpressionST().containsKey(name)){
+//				return context.getExpressionST().get(name);
+//			}
 			if(context.isFunction()){
 				break;
 			}
@@ -2068,12 +2113,27 @@ public class HiwiiContext extends Entity {
 	}
 	
 	public Entity doFunctionCalculation(Entity subject, String name, List<Entity> args){
+		Entity ret = subject.doFunctionCalculation(name, args);
+		if(ret != null) {
+			return ret;
+		}
+		
 		try {
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 			
+			FunctionDeclaration fd = db.getFunctionCalculation_Subject(subject, name, args, null);
+			if(fd != null){
+				RuntimeContext rc = getLadder().newRuntimeContext('c');
+				int i = 0;
+				for(String arg:fd.getArguments()){
+					rc.getRefers().put(arg, args.get(i));
+				}
+				return rc.doCalculation(subject, fd.getStatement());
+			}
+			
 			String type = subject.getClassName();
 			Definition def = EntityUtil.proxyGetDefinition(type);
-			FunctionDeclaration fd = db.getFunctionCalculation(def, name, args, null);
+			fd = db.getFunctionCalculation(def, name, args, null);
 			if(fd != null){
 				RuntimeContext rc = getLadder().newRuntimeContext('c');
 				int i = 0;
@@ -2093,11 +2153,7 @@ public class HiwiiContext extends Entity {
 			return new HiwiiException();
 		}
 		
-		Entity ret = subject.doFunctionCalculation(name, args);
-		if(ret != null) {
-			return ret;
-		}
-		return doFunctionCalculation(name, args);
+		return null;
 	}
 
 	public Expression doFunctionDecision(String name, List<Entity> args){
@@ -2154,11 +2210,12 @@ public class HiwiiContext extends Entity {
 		if(name.equals("doCalculation")){
 			if(args.size() == 1){
 				Entity result = doCalculation(args.get(0));
-				if(!(result instanceof Expression)) {
-					return new HiwiiException();
-				}
-				Expression arg = (Expression) result;
-				return doCalculation(arg);
+//				if(!(result instanceof Expression)) {
+//					return new HiwiiException();
+//				}
+//				Expression arg = (Expression) result;
+//				return doCalculation(arg);
+				return result;
 			}
 		}
 		if(name.equals("last")){
@@ -2255,6 +2312,29 @@ public class HiwiiContext extends Entity {
 				return new HiwiiException();
 			}
 		}
+		
+		try {
+			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			MappingDeclaration md = db.getMappingCalculation(name, args, null);
+			if(md != null){
+				RuntimeContext rc = getLadder().newRuntimeContext('c');
+				int i = 0;
+				for(String arg:md.getArguments()){
+					rc.getExpressions().put(arg, args.get(i));
+				}
+				return rc.doCalculation(md.getStatement());
+			}
+		} catch (DatabaseException e) {
+			return new HiwiiException();
+		} catch (IOException e) {
+			return new HiwiiException();
+		} catch (ApplicationException e) {
+			return new HiwiiException();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new HiwiiException();
+		}
+		
 		return null;//proxyMappingCalculation(name, args);
 	}
 
@@ -6009,13 +6089,17 @@ public class HiwiiContext extends Entity {
 				db.putProperty(prop.getName(), type.getName(), null);
 			}else if(source instanceof FunctionExpression){
 				FunctionExpression func = (FunctionExpression) source;
-				db.putFunctionLink(func, type.getName(), null);
-			}else if(source instanceof MappingExpression){
-				MappingExpression fe = (MappingExpression) source;
-				if(fe.getArguments().size() == 0) {
+				if(func.getArguments().size() == 0) {
 					return new HiwiiException();
 				}
-				return new HiwiiException();
+				db.putFunctionLink(func, type.getName(), null);
+			}else if(source instanceof MappingExpression){
+				MappingExpression me = (MappingExpression) source;
+				if(me.getArguments().size() == 0) {
+					return new HiwiiException();
+				}
+				db.putMappingLink(me, type.getName(), txn);
+//				return new NormalEnd();
 			}else{
 				return new HiwiiException();
 			}
@@ -7599,7 +7683,15 @@ public class HiwiiContext extends Entity {
 //					db.putFunAction(fd, null);
 				}
 			}else if(source instanceof MappingExpression){
-
+				MappingExpression me = (MappingExpression) source;
+				
+				if(type == 'c'){
+					db.putMappingCalculation(me, expr, null);
+				}else if(type == 'd'){
+//					db.putFunDecision(fd, null);
+				}else{
+//					db.putFunAction(fd, null);
+				}
 			}else if(source instanceof SubjectOperation){
 				SubjectOperation so = (SubjectOperation) source;
 				if(!(so.getSubject() instanceof IdentifierExpression)){

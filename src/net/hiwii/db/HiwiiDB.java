@@ -44,6 +44,7 @@ import net.hiwii.db.bind.PropertyBinding;
 import net.hiwii.db.bind.ValueBinding;
 import net.hiwii.db.bind.VariableBinding;
 import net.hiwii.db.bind.func.FunctionDeclarationBinding;
+import net.hiwii.db.bind.func.MappingDeclarationBinding;
 import net.hiwii.db.ent.FunctionHead;
 import net.hiwii.db.ent.StoredValue;
 import net.hiwii.db.key.AssignmentIDKeyCreater;
@@ -62,6 +63,7 @@ import net.hiwii.def.Declaration;
 import net.hiwii.def.Definition;
 import net.hiwii.def.decl.ConditionDeclaration;
 import net.hiwii.def.decl.FunctionDeclaration;
+import net.hiwii.def.decl.MappingDeclaration;
 import net.hiwii.expr.BinaryOperation;
 import net.hiwii.expr.BraceExpression;
 import net.hiwii.expr.BracketExpression;
@@ -121,6 +123,8 @@ public class HiwiiDB {
 	Database functionLink = null;
 	SecondaryDatabase indexFunctionLink = null;
 	
+	Database mappingLink = null;
+	
 	Database assignDatabase = null;	
 	Database listAssignDatabase = null;
 	
@@ -170,6 +174,10 @@ public class HiwiiDB {
 	
 	Database fCalculationInst = null;
 	SecondaryDatabase indexfCalculationInst = null;
+	
+	Database mCalculation = null;
+	Database mDecision = null;
+	Database mAction = null;
 	
 	Database defInDef = null;
 	Database propInDef = null;
@@ -245,6 +253,46 @@ public class HiwiiDB {
 		return fAction;
 	}
 
+	public Database getFunctionLink() {
+		return functionLink;
+	}
+
+	public void setFunctionLink(Database functionLink) {
+		this.functionLink = functionLink;
+	}
+
+	public Database getMappingLink() {
+		return mappingLink;
+	}
+
+	public void setMappingLink(Database mappingLink) {
+		this.mappingLink = mappingLink;
+	}
+
+	public Database getfCalculation() {
+		return fCalculation;
+	}
+
+	public void setfCalculation(Database fCalculation) {
+		this.fCalculation = fCalculation;
+	}
+
+	public Database getfCalculationInst() {
+		return fCalculationInst;
+	}
+
+	public void setfCalculationInst(Database fCalculationInst) {
+		this.fCalculationInst = fCalculationInst;
+	}
+
+	public Database getmCalculation() {
+		return mCalculation;
+	}
+
+	public void setmCalculation(Database mCalculation) {
+		this.mCalculation = mCalculation;
+	}
+
 	public void setfAction(Database fAction) {
 		this.fAction = fAction;
 	}
@@ -312,6 +360,8 @@ public class HiwiiDB {
 			idLink = myDbEnvironment.openDatabase(null, "idLink", dbconf);//new
 			functionLink = myDbEnvironment.openDatabase(null, "functionLink", dbconf);//new
 			
+			mappingLink = myDbEnvironment.openDatabase(null, "mappingLink", dbconf);//new
+			
 			mySecConfig.setKeyCreator(new FunctionHeadKeyCreater());
 			indexFunctionLink = myDbEnvironment.openSecondaryDatabase(null, "indexFunctionLink", functionLink, 
 					mySecConfig);
@@ -357,6 +407,10 @@ public class HiwiiDB {
 			fDecision = myDbEnvironment.openDatabase(null, "fdecisionDatabase", dbconf);
 			fAction = myDbEnvironment.openDatabase(null, "factionDatabase", dbconf);
 			
+			mCalculation = myDbEnvironment.openDatabase(null, "mCalculation", dbconf);
+			mDecision = myDbEnvironment.openDatabase(null, "mDecision", dbconf);
+			mAction = myDbEnvironment.openDatabase(null, "mAction", dbconf);
+			
 			fCalculationDef = myDbEnvironment.openDatabase(null, "fCalculationDef", dbconf);
 			mySecConfig.setKeyCreator(new DefinitionFunctionKeyCreater());
 			indexfCalculationDef = myDbEnvironment.openSecondaryDatabase(null, "indexfCalculationDef", fCalculationDef, 
@@ -364,7 +418,7 @@ public class HiwiiDB {
 			
 			fCalculationInst = myDbEnvironment.openDatabase(null, "fCalculationInst", dbconf);
 			mySecConfig.setKeyCreator(new InstanceFunctionKeyCreater());
-			indexfCalculationInst = myDbEnvironment.openSecondaryDatabase(null, "indexfCalculationInst", fCalculationDef, 
+			indexfCalculationInst = myDbEnvironment.openSecondaryDatabase(null, "indexfCalculationInst", fCalculationInst, 
 					mySecConfig);
 			
 			
@@ -542,6 +596,18 @@ public class HiwiiDB {
 			if (fAction != null) {
 				fAction.close();
 			}
+			
+			if (mCalculation != null) {
+				mCalculation.close();
+			}
+			
+			if (mDecision != null) {
+				mDecision.close();
+			}
+			
+			if (mAction != null) {
+				mAction.close();
+			}
 			if (indexfCalculationDef != null) {
 				indexfCalculationDef.close();
 			}
@@ -627,6 +693,9 @@ public class HiwiiDB {
 				functionLink.close();
 			}
 			
+			if (mappingLink != null) {
+				mappingLink.close();
+			}
 			
 			if (listAssignDatabase != null) {
 				listAssignDatabase.close();
@@ -2849,6 +2918,49 @@ public class HiwiiDB {
 		return null;
 	}
 	
+	public void putMappingLink(MappingExpression map, String type, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = null;
+		key = map.getName() + "#" + map.getArguments().size();
+		
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry(type.getBytes("UTF-8"));
+
+	    String result = getMappingLink(map, txn);
+	    if(!(result == null || result == "")) {
+	    	throw new ApplicationException("has defined mapping.");
+	    }
+		mappingLink.put(txn, theKey, theData);
+	}
+	
+	public String getMappingLink(MappingExpression map, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = null;
+		key = map.getName() + "#" + map.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+	    OperationStatus found = mappingLink.get(txn, theKey, theData, LockMode.DEFAULT);
+	    if(found == OperationStatus.SUCCESS) {
+	    	String type = new String(theData.getData(), "UTF-8");
+	    	return type;
+	    }
+		return null;
+	}
+	
+	public String getMappingLink(String name, List<Expression> args, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = null;
+		key = name + "#" + args.size();
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+	    OperationStatus found = mappingLink.get(txn, theKey, theData, LockMode.DEFAULT);
+	    if(found == OperationStatus.SUCCESS) {
+	    	String type = new String(theData.getData(), "UTF-8");
+	    	return type;
+	    }
+		return null;
+	}
+	
 	public void putAssignment(String key, Assignment ass, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
@@ -4021,10 +4133,6 @@ public class HiwiiDB {
 		fCalculationInst.put(txn, theKey, theData);
 	}
 	
-	public FunctionDeclaration getFunctionCalculation(Entity subject, String name, List<Entity> args, Transaction txn)
-			throws IOException, DatabaseException, ApplicationException, Exception{
-		return null;
-	}
 //	public void putFunAction(Definition def, FunctionDeclaration dec, Transaction txn)
 //			throws IOException, DatabaseException, ApplicationException, Exception{
 //		String key0 = dec.getName() + "#" + dec.getArguments().size() 
@@ -4390,53 +4498,59 @@ public class HiwiiDB {
 		return null;
 	}
 	
-	public FunctionDeclaration getFunctionCalculation_Inst(HiwiiInstance inst, String name, List<Entity> args, Transaction txn)
+	public FunctionDeclaration getFunctionCalculation_Subject(Entity subject, String name, List<Entity> args, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKey(name, args, txn);
-		if(fkey == null) {
-			return null;
-		}
-		SecondaryCursor cursor = null;
-		cursor = indexfCalculationInst.openCursor(null, null);
-		String key = fkey + "&" + inst.getUuid();
-		
-		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-		DatabaseEntry pkey = new DatabaseEntry();
-	    DatabaseEntry data = new DatabaseEntry();
-	    
-	    TupleBinding<FunctionDeclaration> binding = new FunctionDeclarationBinding();
-	    try {
-	    	OperationStatus found = cursor.getSearchKeyRange(theKey, pkey, data, LockMode.DEFAULT);
-	    	while (found == OperationStatus.SUCCESS)  {
-	    		String key0 = new String(theKey.getData(), "UTF-8");
-	    		if(!StringUtil.matched(key, key0)){
-	    			break;
-	    		}
-	    		FunctionDeclaration fd = binding.entryToObject(data);
-				boolean match = true;
-				for(int i=0;i<args.size();i++) {
-					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), fd.getArguments().get(i), fd.getArgType().get(i))) {
-						match = false;
-						break;
+		if(subject instanceof HiwiiInstance) {
+			HiwiiInstance inst = (HiwiiInstance) subject;
+			String fkey = getFunctionLinkKey(name, args, txn);
+			if(fkey == null) {
+				return null;
+			}
+			SecondaryCursor cursor = null;
+			cursor = indexfCalculationInst.openCursor(null, null);
+			String key = fkey + "&" + inst.getUuid();
+			
+			DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+			DatabaseEntry pkey = new DatabaseEntry();
+		    DatabaseEntry data = new DatabaseEntry();
+		    
+		    TupleBinding<FunctionDeclaration> binding = new FunctionDeclarationBinding();
+		    try {
+		    	OperationStatus found = cursor.getSearchKeyRange(theKey, pkey, data, LockMode.DEFAULT);
+		    	while (found == OperationStatus.SUCCESS)  {
+		    		String key0 = new String(theKey.getData(), "UTF-8");
+		    		if(!StringUtil.matched(key, key0)){
+		    			break;
+		    		}
+		    		FunctionDeclaration fd = binding.entryToObject(data);
+					boolean match = true;
+					for(int i=0;i<args.size();i++) {
+						if(!EntityUtil.judgeEntityIsDefinition(args.get(i), fd.getArguments().get(i), fd.getArgType().get(i))) {
+							match = false;
+							break;
+						}
 					}
-				}
-				if(match) {
-					return fd;
-				}
-	    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
-//	    		found = cursor.getLast(theKey, pkey, data, LockMode.DEFAULT);
-	    	}
-	    }catch(DatabaseException e) {
-	    	throw new ApplicationException();
-	    } finally  {
-	    	try {
-	    		if (cursor != null) {
-	    			cursor.close();
-	    		}
-	    	} catch(DatabaseException e) {
-	    		throw new ApplicationException();
-	    	}
-	    }
+					if(match) {
+						return fd;
+					}
+		    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
+//		    		found = cursor.getLast(theKey, pkey, data, LockMode.DEFAULT);
+		    	}
+		    }catch(DatabaseException e) {
+		    	throw new ApplicationException();
+		    } finally  {
+		    	try {
+		    		if (cursor != null) {
+		    			cursor.close();
+		    		}
+		    	} catch(DatabaseException e) {
+		    		throw new ApplicationException();
+		    	}
+		    }
+		}else if(subject instanceof StringExpression) {
+			
+		}
+		
 		return null;
 	}
 	
@@ -4510,6 +4624,59 @@ public class HiwiiDB {
 	    	}
 	    }
 		return null;
+	}
+	
+	public void putMappingCalculation(MappingExpression map, Expression expr, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = map.getName() + "#" + map.getArguments().size();
+		String type = getMappingLink(map, txn);
+		if(type == null || type.length() == 0) {
+			throw new ApplicationException();
+		}
+		MappingDeclaration md = getMappingCalculation(map.getName(), map.getArguments(), txn);
+		if(md != null) {
+			throw new ApplicationException();
+		}
+		List<String> args = new ArrayList<String>();
+		for(Expression exp:map.getArguments()) {
+			if(!(exp instanceof IdentifierExpression)) {
+				throw new ApplicationException();
+			}
+			IdentifierExpression ie = (IdentifierExpression) exp;
+			args.add(ie.getName());
+		}
+		String key = fkey;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+
+		MappingDeclaration dec = new MappingDeclaration();
+		dec.setStatement(expr);
+		dec.setArguments(args);
+		
+		TupleBinding<MappingDeclaration> dataBinding = new MappingDeclarationBinding();
+		dataBinding.objectToEntry(dec, theData);
+		mCalculation.put(txn, theKey, theData);
+	}
+	
+	public MappingDeclaration getMappingCalculation(String name, List<Expression> args,  Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = name + "#" + args.size();
+		String type = getMappingLink(name, args, txn);
+		if(type == null || type.length() == 0) {
+			throw new ApplicationException();
+		}
+		String key = fkey;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+		
+		TupleBinding<MappingDeclaration> binding = new MappingDeclarationBinding();
+		OperationStatus found = mCalculation.get(txn, theKey, theData, LockMode.DEFAULT);
+    	if(found == OperationStatus.SUCCESS)  {
+    		MappingDeclaration md = binding.entryToObject(theData);
+    		return md;
+    	}
+
+    	return null;
 	}
 	
 	public void putConditionCalculation(ConditionDeclaration dec, Transaction txn)

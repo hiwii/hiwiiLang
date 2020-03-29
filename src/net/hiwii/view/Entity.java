@@ -8,7 +8,6 @@ import java.util.List;
 import com.sleepycat.je.DatabaseException;
 
 import net.hiwii.cognition.Expression;
-import net.hiwii.cognition.NullValue;
 import net.hiwii.cognition.result.BreakReturn;
 import net.hiwii.cognition.result.ExitEnd;
 import net.hiwii.cognition.result.JudgmentResult;
@@ -44,7 +43,6 @@ import net.hiwii.lambda.ArgumentedLambda;
 import net.hiwii.lambda.EntityLambda;
 import net.hiwii.lambda.LambdaMapping;
 import net.hiwii.message.HiwiiException;
-import net.hiwii.msg.from.MessageFrom;
 import net.hiwii.system.SystemOperators;
 import net.hiwii.system.exception.ApplicationException;
 import net.hiwii.system.syntax.bin.BinaryFormat;
@@ -608,13 +606,6 @@ public class Entity {
 		return null;
 	}
 	
-	/**
-	 * lambda”¶”√
-	 * @param source
-	 * @param arg
-	 * @return
-	 */
-	public Expression doLambda(Expression source, Expression arg){return null;};
 	
 	public Expression doActionProgram(BraceExpression prg){
 //		RuntimeContext rc = LocalHost.getInstance().newSessionContext();

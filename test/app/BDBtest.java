@@ -97,7 +97,8 @@ public class BDBtest {
 	public void testAllFunAction(){
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		Cursor cursor = null;
-		cursor = db.getfAction().openCursor(null, null);
+//		cursor = db.getfAction().openCursor(null, null);
+		cursor = db.getMappingLink().openCursor(null, null);
 		
 		DatabaseEntry theKey = new DatabaseEntry();
 	    DatabaseEntry data = new DatabaseEntry();
@@ -112,7 +113,7 @@ public class BDBtest {
 	    		found = cursor.getNext(theKey, data, LockMode.DEFAULT);
 	    	}
 	    	
-	    	db.close();
+	    	
 	    }catch(DatabaseException e) {
 	    	e.printStackTrace();
 	    } catch (UnsupportedEncodingException e) {
@@ -126,6 +127,7 @@ public class BDBtest {
 	    	} catch(DatabaseException e) {
 	    		e.printStackTrace();
 	    	}
+	    	db.close();
 	    }
 	}
 	
