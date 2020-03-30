@@ -116,19 +116,25 @@ public class HiwiiDB {
 	
 	SecondaryConfig mySecConfig = null;
 	SecondaryDatabase mySecDb = null;
-	
+
+	Database refers = null;
+	Database entityDatabase = null;//single identification识别
 	Database defDatabase = null;
+	Database idState = null;
+	
 	Database idLink = null;//Link or Property
 	
 	Database functionLink = null;
 	SecondaryDatabase indexFunctionLink = null;
+	
+	Database functionState = null;
+	SecondaryDatabase indexFunctionState = null;
 	
 	Database mappingLink = null;
 	
 	Database assignDatabase = null;	
 	Database listAssignDatabase = null;
 	
-	Database statusDatabase = null;
 	Database judgeDatabase = null;
 	
 	Database actionDatabase = null;
@@ -145,11 +151,9 @@ public class HiwiiDB {
 	
 	Database processDB = null;
 	
-	Database refers = null;
 	Database decides = null;
 	Database variables = null;
 	
-	Database entityDatabase = null;//single identification识别
 	SecondaryDatabase indexInstType = null;
 	SecondaryDatabase indexEntityPart = null;
 	
@@ -359,6 +363,7 @@ public class HiwiiDB {
 			defDatabase = myDbEnvironment.openDatabase(null, "definitionDatabase", dbconf);
 			idLink = myDbEnvironment.openDatabase(null, "idLink", dbconf);//new
 			functionLink = myDbEnvironment.openDatabase(null, "functionLink", dbconf);//new
+			functionState = myDbEnvironment.openDatabase(null, "functionState", dbconf);//new
 			
 			mappingLink = myDbEnvironment.openDatabase(null, "mappingLink", dbconf);//new
 			
@@ -366,11 +371,15 @@ public class HiwiiDB {
 			indexFunctionLink = myDbEnvironment.openSecondaryDatabase(null, "indexFunctionLink", functionLink, 
 					mySecConfig);
 
+			mySecConfig.setKeyCreator(new FunctionHeadKeyCreater());
+			indexFunctionState = myDbEnvironment.openSecondaryDatabase(null, "indexFunctionState", functionState, 
+					mySecConfig);
+			
 			assignDatabase = myDbEnvironment.openDatabase(null, "assignDatabase", dbconf);
 			
 			listAssignDatabase = myDbEnvironment.openDatabase(null, "listAssignDatabase", dbconf);
 			
-			statusDatabase = myDbEnvironment.openDatabase(null, "statusDatabase", dbconf);
+			idState = myDbEnvironment.openDatabase(null, "idState", dbconf);
 			judgeDatabase = myDbEnvironment.openDatabase(null, "judgementDatabase", dbconf);
 			
 			actionDatabase = myDbEnvironment.openDatabase(null, "actionDatabase", dbconf);
@@ -665,8 +674,8 @@ public class HiwiiDB {
 				judgeDatabase.close();
 			}
 			
-			if (statusDatabase != null) {
-				statusDatabase.close();
+			if (idState != null) {
+				idState.close();
 			}
 			
 			if (actionDatabase != null) {
@@ -691,6 +700,14 @@ public class HiwiiDB {
 			
 			if (functionLink != null) {
 				functionLink.close();
+			}
+			
+			if (indexFunctionState != null) {
+				indexFunctionState.close();
+			}
+			
+			if (functionState != null) {
+				functionState.close();
 			}
 			
 			if (mappingLink != null) {
@@ -959,7 +976,7 @@ public class HiwiiDB {
 				String key = str + "@" + def.getName();
 				DatabaseEntry propkey = new DatabaseEntry(key.getBytes("UTF-8"));
 				DatabaseEntry propdata = new DatabaseEntry(str.getBytes("UTF-8"));
-				statusDatabase.put(txn, propkey, propdata);
+				idState.put(txn, propkey, propdata);
 			}			
 		} catch (Exception e) {
 			throw new ApplicationException();
@@ -2918,6 +2935,139 @@ public class HiwiiDB {
 		return null;
 	}
 	
+	public void putFunctionState(FunctionExpression func, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = null;
+		key = func.getName() + "#" + func.getArguments().size() + "%" + EntityUtil.getUUID();
+		FunctionHead head = new FunctionHead();
+		head.setType("State");
+		List<String> args = new ArrayList<String>();
+		for(Expression exp:func.getArguments()) {
+			if(exp instanceof IdentifierExpression) {
+				IdentifierExpression ie = (IdentifierExpression) exp;
+				Definition def = EntityUtil.proxyGetDefinition(ie.getName());
+				if(def == null) {
+					throw new ApplicationException();
+				}
+				args.add(ie.getName());
+			}else {
+				throw new ApplicationException();
+			}
+//			args.add(exp.toString());
+		}
+		head.setArgumentType(args);
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    List<FunctionHead> result = getFunctionState(func, txn);
+	    if(!(result.size() == 0 || result == null)) {
+	    	throw new ApplicationException("has defined function.");
+	    }
+		TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+		binding.objectToEntry(head, theData);
+		functionLink.put(txn, theKey, theData);
+	}
+	
+	public List<FunctionHead> getFunctionState(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+	    List<FunctionHead> result = new ArrayList<FunctionHead>();
+		try {
+			cursor = indexFunctionLink.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match1 = true, match2 = true;
+				FunctionHead head = binding.entryToObject(data);
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(type, head.getArgumentType().get(i))) {
+						match1 = false;
+						break;
+					}
+				}
+				//需要判定两次。函数定义即不能包容以前，也不能被以前的函数包容。
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+						match2 = false;
+						break;
+					}
+				}
+				
+				if(match1 && match2) {
+					result.add(head);
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+	    	return result;
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
+	public boolean hasFunctionState(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		List<FunctionHead> result = getFunctionState(func, txn);
+		if(result.size() == 0 || result == null) {
+			return false;
+		}else {
+			return true;
+		}
+	}
+	
+	public FunctionHead deleteFunctionState(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+//	    List<FunctionHead> result = new ArrayList<FunctionHead>();
+		try {
+			cursor = indexFunctionState.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match = true;
+				FunctionHead head = binding.entryToObject(data);
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+//					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+//						match = false;
+//						break;
+//					}
+					if(!head.getArgumentType().get(i).equals(type)) {
+						match = false;
+						break;
+					}
+				}
+				
+				if(match) {
+					cursor.delete();
+					return head;
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+//	    	return null;
+	    	throw new ApplicationException("not found!");
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
 	public void putMappingLink(MappingExpression map, String type, Transaction txn)  
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = null;
@@ -3321,14 +3471,14 @@ public class HiwiiDB {
 	public void putStatus(String key, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
-	    DatabaseEntry theData = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry("State".getBytes("UTF-8"));
 
-	    OperationStatus status = statusDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+	    OperationStatus status = idState.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			throw new ApplicationException();
 		}
 		
-		statusDatabase.put(txn, theKey, theData);
+		idState.put(txn, theKey, theData);
 	}
 	
 	public boolean hasStatus(String key,Transaction txn)
@@ -3336,7 +3486,7 @@ public class HiwiiDB {
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 
-	    OperationStatus status = statusDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+	    OperationStatus status = idState.get(null, theKey, theData, LockMode.DEFAULT);
 	    if(status == OperationStatus.SUCCESS){
 //	    	String ret = new String(theData.getData(), "UTF-8");
 	    	return true;
@@ -3408,7 +3558,7 @@ public class HiwiiDB {
 		DatabaseEntry data = new DatabaseEntry();
 //		TupleBinding<StoredValue> dataBinding = new ValueBinding();
 		try {
-			cursor = statusDatabase.openCursor(null, null);
+			cursor = idState.openCursor(null, null);
 			List<String> list = new ArrayList<String>();
 			OperationStatus retVal = cursor.getNext(key, data, LockMode.DEFAULT);
 			while(retVal == OperationStatus.SUCCESS){

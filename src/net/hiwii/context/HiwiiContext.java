@@ -6201,15 +6201,20 @@ public class HiwiiContext extends Entity {
 	
 	public Expression newStatus(Expression expr){
 		String name = null;
-		if(expr instanceof IdentifierExpression){
-			IdentifierExpression ie = (IdentifierExpression) expr;
-			name = ie.getName();
-		}else{
-			return new HiwiiException();
-		}
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		try {
-			db.putStatus(name, null);
+			if(expr instanceof IdentifierExpression){
+				IdentifierExpression ie = (IdentifierExpression) expr;
+				name = ie.getName();
+				db.putStatus(name, null);
+			}else if(expr instanceof FunctionExpression){
+				FunctionExpression fe = (FunctionExpression) expr;
+				name = fe.getName();
+				db.putStatus(name, null);
+			}else{
+				return new HiwiiException();
+			}
+			
 		}catch (DatabaseException e) {
 			return new HiwiiException();
 		}catch (Exception e) {
