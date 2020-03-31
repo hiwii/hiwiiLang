@@ -2965,7 +2965,7 @@ public class HiwiiDB {
 	    }
 		TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
 		binding.objectToEntry(head, theData);
-		functionLink.put(txn, theKey, theData);
+		functionState.put(txn, theKey, theData);
 	}
 	
 	public List<FunctionHead> getFunctionState(FunctionExpression func, Transaction txn)
@@ -2978,7 +2978,7 @@ public class HiwiiDB {
 	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
 	    List<FunctionHead> result = new ArrayList<FunctionHead>();
 		try {
-			cursor = indexFunctionLink.openCursor(txn, null);
+			cursor = indexFunctionState.openCursor(txn, null);
 			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
 //			String key0 = new String(theKey.getData(), "UTF-8");
 	    	while (found == OperationStatus.SUCCESS)  {

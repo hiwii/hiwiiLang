@@ -3419,6 +3419,13 @@ public class HiwiiContext extends Entity {
 		return new NormalEnd();
 	}
 	public Expression doDefine(Expression source, Expression expr){
+		if(expr instanceof IdentifierExpression){
+			IdentifierExpression ie = (IdentifierExpression) expr;
+			String type = ie.getName();
+			if(type.equals("State")) {
+				return newStatus(source);
+			}
+		}
 		if(expr instanceof BinaryOperation){
 			BinaryOperation bo = (BinaryOperation) expr;
 			if(bo.getOperator().equals(":")){
@@ -3436,9 +3443,6 @@ public class HiwiiContext extends Entity {
 				
 				if(cogn.equals("Property")|| cogn.equals("Link")){
 					return defineLink(source, right);
-				}else if(cogn.equals("State")){ //原为new(Status
-					//status=state 表示状态
-					return newStatus(right);
 				}else if(cogn.equals("Switch")){ //原为new(Status
 					//status=state 表示状态
 					return newSwitch(source, right);
@@ -6210,7 +6214,7 @@ public class HiwiiContext extends Entity {
 			}else if(expr instanceof FunctionExpression){
 				FunctionExpression fe = (FunctionExpression) expr;
 				name = fe.getName();
-				db.putStatus(name, null);
+				db.putFunctionState(fe, null);
 			}else{
 				return new HiwiiException();
 			}
@@ -7271,6 +7275,12 @@ public class HiwiiContext extends Entity {
 				var.setValue(value);
 				return new NormalEnd();
 			}
+			if(value instanceof HiwiiException){
+				return (HiwiiException)value;
+			}
+		}else if(left instanceof FunctionExpression){
+			FunctionExpression fe = (FunctionExpression) left;
+//			FunctionLink
 			if(value instanceof HiwiiException){
 				return (HiwiiException)value;
 			}
