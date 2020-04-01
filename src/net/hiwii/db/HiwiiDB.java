@@ -37,6 +37,7 @@ import net.hiwii.context.SessionContext;
 import net.hiwii.db.bind.AssignmentBinding;
 import net.hiwii.db.bind.DeclarationBinding;
 import net.hiwii.db.bind.DefinitionBinding;
+import net.hiwii.db.bind.FunctionAssignBinding;
 import net.hiwii.db.bind.FunctionHeadBinding;
 import net.hiwii.db.bind.ListExpressionBinding;
 import net.hiwii.db.bind.MessageBinding;
@@ -45,6 +46,7 @@ import net.hiwii.db.bind.ValueBinding;
 import net.hiwii.db.bind.VariableBinding;
 import net.hiwii.db.bind.func.FunctionDeclarationBinding;
 import net.hiwii.db.bind.func.MappingDeclarationBinding;
+import net.hiwii.db.ent.FunctionAssign;
 import net.hiwii.db.ent.FunctionHead;
 import net.hiwii.db.ent.StoredValue;
 import net.hiwii.db.key.AssignmentIDKeyCreater;
@@ -132,7 +134,9 @@ public class HiwiiDB {
 	
 	Database mappingLink = null;
 	
-	Database assignDatabase = null;	
+	Database idAssign = null;
+	Database functionAssign = null;
+	SecondaryDatabase indexFunctionAssign = null;
 	Database listAssignDatabase = null;
 	
 	Database judgeDatabase = null;
@@ -375,7 +379,8 @@ public class HiwiiDB {
 			indexFunctionState = myDbEnvironment.openSecondaryDatabase(null, "indexFunctionState", functionState, 
 					mySecConfig);
 			
-			assignDatabase = myDbEnvironment.openDatabase(null, "assignDatabase", dbconf);
+			idAssign = myDbEnvironment.openDatabase(null, "idAssign", dbconf);
+			functionAssign = myDbEnvironment.openDatabase(null, "functionAssign", dbconf);
 			
 			listAssignDatabase = myDbEnvironment.openDatabase(null, "listAssignDatabase", dbconf);
 			
@@ -467,7 +472,7 @@ public class HiwiiDB {
 //		    assignSecConfig.setAllowCreate(true);
 //		    assignSecConfig.setSortedDuplicates(true);
 		    mySecConfig.setKeyCreator(new AssignmentIDKeyCreater());
-		    indexAssignHost = myDbEnvironment.openSecondaryDatabase(null, "instAssignHost", assignDatabase, 
+		    indexAssignHost = myDbEnvironment.openSecondaryDatabase(null, "instAssignHost", idAssign, 
 		    		mySecConfig);
 		    indexJudgeHost = myDbEnvironment.openSecondaryDatabase(null, "indexJudgeHost", judgeDatabase, 
 		    		mySecConfig);
@@ -718,8 +723,12 @@ public class HiwiiDB {
 				listAssignDatabase.close();
 			}
 			
-			if (assignDatabase != null) {
-				assignDatabase.close();
+			if (idAssign != null) {
+				idAssign.close();
+			}
+			
+			if (functionAssign != null) {
+				functionAssign.close();
 			}
 			
 			if (defDatabase != null) {
@@ -1212,7 +1221,7 @@ public class HiwiiDB {
 				DatabaseEntry assdata = new DatabaseEntry();
 				StoredValue rec = EntityUtil.entityToRecord(ass.getValue());
 				dataBinding.objectToEntry(rec, assdata);
-				assignDatabase.put(txn, asskey, assdata);
+				idAssign.put(txn, asskey, assdata);
 			}
 		} catch (Exception e) {
 			throw new ApplicationException();
@@ -1289,11 +1298,11 @@ public class HiwiiDB {
 					DatabaseEntry assdata = new DatabaseEntry();
 					StoredValue rec = EntityUtil.entityToRecord(ass.getValue());
 					dataBinding.objectToEntry(rec, assdata);
-					assignDatabase.put(txn, asskey, assdata);
+					idAssign.put(txn, asskey, assdata);
 					for(Entity ent:list.getItems()){
 						Assignment item = new Assignment();
 						item.setValue(ent);
-						assignDatabase.put(txn, asskey, assdata);
+						idAssign.put(txn, asskey, assdata);
 					}					
 				}else{
 					String key0 = ass.getName() + "@" + key;
@@ -1301,7 +1310,7 @@ public class HiwiiDB {
 					DatabaseEntry assdata = new DatabaseEntry();
 					StoredValue rec = EntityUtil.entityToRecord(ass.getValue());
 					dataBinding.objectToEntry(rec, assdata);
-					assignDatabase.put(txn, asskey, assdata);
+					idAssign.put(txn, asskey, assdata);
 				}
 			}
 		} catch (Exception e) {
@@ -1867,7 +1876,7 @@ public class HiwiiDB {
 		TupleBinding<StoredValue> dataBinding = new ValueBinding();
 		
 		try {
-			OperationStatus ret = assignDatabase.get(null, key, data, LockMode.DEFAULT);
+			OperationStatus ret = idAssign.get(null, key, data, LockMode.DEFAULT);
 			if(ret == OperationStatus.SUCCESS){
 				StoredValue rec = dataBinding.entryToObject(data);
 				Assignment ass = EntityUtil.recordToAssignment(rec);
@@ -1995,7 +2004,7 @@ public class HiwiiDB {
 		try {
 			cursor = indexInstType.openCursor(null, null);
 			OperationStatus ret1 = cursor.getSearchKeyRange(theKey, key, data, LockMode.DEFAULT);
-			cur2 = assignDatabase.openCursor(null, null);	
+			cur2 = idAssign.openCursor(null, null);	
 			TupleBinding<StoredValue> dataBinding = new ValueBinding();	
 			String dname, sign;
 			MultiObjectList ret = new MultiObjectList();
@@ -2097,7 +2106,7 @@ public class HiwiiDB {
 		try {
 			cursor = indexInstType.openCursor(null, null);
 			OperationStatus ret1 = cursor.getSearchKeyRange(theKey, key, data, LockMode.DEFAULT);
-			cur2 = assignDatabase.openCursor(null, null);	
+			cur2 = idAssign.openCursor(null, null);	
 			TupleBinding<StoredValue> dataBinding = new ValueBinding();	
 			String dname, sign;
 			MultiObjectList ret = new MultiObjectList();
@@ -2199,7 +2208,7 @@ public class HiwiiDB {
 		try {
 			cursor = indexInstType.openCursor(null, null);
 			OperationStatus ret1 = cursor.getSearchKeyRange(theKey, key, data, LockMode.DEFAULT);
-			cur2 = assignDatabase.openCursor(null, null);	
+			cur2 = idAssign.openCursor(null, null);	
 			TupleBinding<StoredValue> dataBinding = new ValueBinding();	
 			String dname, sign;
 			MultiObjectList ret = new MultiObjectList();
@@ -2935,6 +2944,43 @@ public class HiwiiDB {
 		return null;
 	}
 	
+	public void putFunctionAssign(String name, List<Entity> args, Entity value, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = getFunctionLinkKey(name, args, null);
+		if(fkey == null) {
+			throw new ApplicationException();
+		}
+		String key = null;
+		key = name + "#" + args.size() + "%" + EntityUtil.getUUID();
+		FunctionAssign ass = new FunctionAssign();
+		ass.setName(name);
+		ass.setArguments(args);
+		ass.setValue(value);
+		for(Entity exp:func.getArguments()) {
+			if(exp.toString().equals(anObject)) {
+				IdentifierExpression ie = (IdentifierExpression) exp;
+				Definition def = EntityUtil.proxyGetDefinition(ie.getName());
+				if(def == null) {
+					throw new ApplicationException();
+				}
+				args.add(ie.getName());
+			}else {
+				throw new ApplicationException();
+			}
+		}
+		head.setArgumentType(args);
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    List<FunctionHead> result = getFunctionLink(func, txn);
+	    if(!(result.size() == 0 || result == null)) {
+	    	throw new ApplicationException("has defined function.");
+	    }
+		TupleBinding<FunctionAssign> binding = new FunctionAssignBinding();
+		binding.objectToEntry(ass, theData);
+		functionAssign.put(txn, theKey, theData);
+	}
+	
 	public void putFunctionState(FunctionExpression func, Transaction txn)  
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = null;
@@ -3120,7 +3166,7 @@ public class HiwiiDB {
 		TupleBinding<StoredValue> dataBinding = new ValueBinding();
 		StoredValue rec = EntityUtil.entityToRecord(ass.getValue());
 		dataBinding.objectToEntry(rec, theData);
-		assignDatabase.put(txn, theKey, theData);
+		idAssign.put(txn, theKey, theData);
 	}
 	
 	public void putProcess(String key, String str, Transaction txn)
@@ -3215,7 +3261,7 @@ public class HiwiiDB {
 	    	rec.setValue(value.toString());
 	    }
 	    binding.objectToEntry(rec, data0);
-		OperationStatus status = assignDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+		OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			StoredValue val = binding.entryToObject(theData);
 			String str = val.getValue() + "%" + EntityUtil.getUUID();
@@ -3228,7 +3274,7 @@ public class HiwiiDB {
 			val.setSign("000000");
 			val.setValue(pid);
 			binding.objectToEntry(val, theData);
-			assignDatabase.put(txn, theKey, theData);
+			idAssign.put(txn, theKey, theData);
 			String str = val.getValue() + "%" + EntityUtil.getUUID();
 			DatabaseEntry key0 = new DatabaseEntry(str.getBytes("UTF-8"));
 		    listAssignDatabase.put(txn, key0, data0);
@@ -3240,7 +3286,7 @@ public class HiwiiDB {
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 
-	    OperationStatus status = assignDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+	    OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 	    if(status == OperationStatus.SUCCESS){
 	    	TupleBinding<StoredValue> dataBinding = new ValueBinding();
 	    	StoredValue rec = dataBinding.entryToObject(theData);
@@ -3257,7 +3303,7 @@ public class HiwiiDB {
 	    DatabaseEntry theData = new DatabaseEntry();
 	    
 		TupleBinding<StoredValue> binding = new ValueBinding();
-		OperationStatus status = assignDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+		OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			StoredValue val = binding.entryToObject(theData);
 			Entity ret = getValue(val);
@@ -3273,7 +3319,7 @@ public class HiwiiDB {
 	    DatabaseEntry theData = new DatabaseEntry();
 	    
 		TupleBinding<StoredValue> binding = new ValueBinding();
-		OperationStatus status = assignDatabase.get(null, theKey, theData, LockMode.DEFAULT);
+		OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			StoredValue val = binding.entryToObject(theData);
 			Entity ret = getValue(val);
@@ -3286,7 +3332,7 @@ public class HiwiiDB {
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 
-	    OperationStatus status = assignDatabase.delete(null, theKey);
+	    OperationStatus status = idAssign.delete(null, theKey);
 	    if(status != OperationStatus.SUCCESS){
 	    	throw new ApplicationException();
 	    }
@@ -3298,7 +3344,7 @@ public class HiwiiDB {
 		DatabaseEntry data = new DatabaseEntry();
 		TupleBinding<StoredValue> dataBinding = new ValueBinding();
 		try {
-			cursor = assignDatabase.openCursor(null, null);
+			cursor = idAssign.openCursor(null, null);
 			List<Assignment> list = new ArrayList<Assignment>();
 			OperationStatus retVal = cursor.getNext(key, data, LockMode.DEFAULT);
 			while(retVal == OperationStatus.SUCCESS){
@@ -5095,7 +5141,7 @@ public class HiwiiDB {
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 
-	    OperationStatus status = assignDatabase.get(txn, theKey, theData, LockMode.DEFAULT);
+	    OperationStatus status = idAssign.get(txn, theKey, theData, LockMode.DEFAULT);
 		TupleBinding<StoredValue> binding = new ValueBinding();
 		if(status == OperationStatus.SUCCESS){
 			StoredValue rec = binding.entryToObject(theData);

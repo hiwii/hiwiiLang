@@ -7275,15 +7275,33 @@ public class HiwiiContext extends Entity {
 				var.setValue(value);
 				return new NormalEnd();
 			}
-			if(value instanceof HiwiiException){
-				return (HiwiiException)value;
-			}
 		}else if(left instanceof FunctionExpression){
 			FunctionExpression fe = (FunctionExpression) left;
-//			FunctionLink
-			if(value instanceof HiwiiException){
-				return (HiwiiException)value;
+			List<Entity> objs = new ArrayList<Entity>();
+			for(Expression exp:fe.getArguments()) {
+				Entity ent = doCalculation(exp);
+				if(ent instanceof HiwiiException) {
+					return new HiwiiException();
+				}
+				objs.add(ent);
 			}
+			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			try {
+				String fkey = db.getFunctionLinkKey(name, objs, null);
+				if(fkey == null) {
+					return new HiwiiException();
+				}
+				
+			} catch (DatabaseException e) {
+				return new HiwiiException();
+			} catch (IOException e) {
+				return new HiwiiException();
+			} catch (ApplicationException e) {
+				return new HiwiiException();
+			} catch (Exception e) {
+				return new HiwiiException();
+			}
+			
 		}else if(left instanceof SubjectOperation){
 			SubjectOperation sv = (SubjectOperation) left;
 //			Expression sub = sv.getSubject();
