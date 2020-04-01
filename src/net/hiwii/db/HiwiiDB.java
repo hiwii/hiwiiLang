@@ -2874,6 +2874,19 @@ public class HiwiiDB {
 		return null;
 	}
 	
+	public FunctionHead getFunctionLinkByKey(String linkKey, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		DatabaseEntry key = new DatabaseEntry(linkKey.getBytes("UTF-8"));
+	    DatabaseEntry data = new DatabaseEntry();
+	    OperationStatus found = functionLink.get(txn, key, data, LockMode.DEFAULT);
+	    if (found == OperationStatus.SUCCESS)  {
+	    	TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+	    	FunctionHead head = binding.entryToObject(data);
+	    	return head;
+	    }
+		return null;
+	}
+	
 	/**
 	 * declare[Calculation:f(Integer x), expression]
 	 * 当类型是Object，可以省略
@@ -2950,8 +2963,9 @@ public class HiwiiDB {
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
+		FunctionHead head = getFunctionLinkByKey(fkey, txn);
 		String key = null;
-		key = name + "#" + args.size() + "%" + EntityUtil.getUUID();
+		key = fkey + "^" + EntityUtil.getUUID();
 		FunctionAssign ass = new FunctionAssign();
 		ass.setName(name);
 		ass.setArguments(args);
