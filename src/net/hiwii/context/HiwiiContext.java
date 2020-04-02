@@ -2083,6 +2083,10 @@ public class HiwiiContext extends Entity {
 
 		try {
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			Entity value = db.getFunctionAssign(name, args, null);
+			if(value != null) {
+				return value;
+			}
 			FunctionDeclaration fd = db.getFunctionCalculation(name, args, null);
 			if(fd != null){
 				RuntimeContext rc = getLadder().newRuntimeContext('c');
@@ -7287,11 +7291,8 @@ public class HiwiiContext extends Entity {
 			}
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 			try {
-				String fkey = db.getFunctionLinkKey(name, objs, null);
-				if(fkey == null) {
-					return new HiwiiException();
-				}
-				
+				db.putFunctionAssign(fe.getName(), objs, value, null);
+				return new NormalEnd();
 			} catch (DatabaseException e) {
 				return new HiwiiException();
 			} catch (IOException e) {

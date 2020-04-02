@@ -2847,10 +2847,10 @@ public class HiwiiDB {
 		try {
 			cursor = indexFunctionLink.openCursor(txn, null);
 			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
-			String key0 = new String(theKey.getData(), "UTF-8");
-    		if(!str.equals(key0)){
-    			return null;
-    		}
+//			String key0 = new String(theKey.getData(), "UTF-8");
+//    		if(!str.equals(key0)){
+//    			return null;
+//    		}
 	    	while (found == OperationStatus.SUCCESS)  {
 				boolean match = true;
 				FunctionHead head = binding.entryToObject(data);
@@ -2989,9 +2989,19 @@ public class HiwiiDB {
 	 * functionAssignµÄkey£º
 	 * name+"#"args.size+"%"+hashCode
  	 */
-	public FunctionAssign getFunctionAssign(String name, List<Entity> args, Transaction txn)  
+	public Entity getFunctionAssign(String name, List<Entity> args, Transaction txn)  
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		
+		String fkey = getFunctionLinkKey(name, args, null);
+		if(fkey == null) {
+			throw new ApplicationException();
+		}
+		String hash = StringUtil.hashArgument(args);
+		String key = null;
+		key = fkey + "^" + hash;
+		FunctionAssign ass = getFunctionAssignByKey(key, txn);
+		if(ass != null) {
+			return ass.getValue();
+		}
 		return null;
 	}
 	
