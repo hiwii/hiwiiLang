@@ -50,6 +50,7 @@ import net.hiwii.reg.RegularExpression;
 import net.hiwii.reg.SimpleRegular;
 import net.hiwii.reg.match.MatchGroup;
 import net.hiwii.reg.match.MatchResult;
+import net.hiwii.system.Constants;
 import net.hiwii.system.LocalHost;
 import net.hiwii.system.SystemDefinition;
 import net.hiwii.system.exception.ApplicationException;
@@ -2233,4 +2234,5 @@ public class EntityUtil {
 		}
 		return ret;
 	}
+	
 }

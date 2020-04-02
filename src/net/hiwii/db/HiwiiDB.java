@@ -2963,38 +2963,50 @@ public class HiwiiDB {
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
-		FunctionHead head = getFunctionLinkByKey(fkey, txn);
+		String hash = StringUtil.hashArgument(args);
+//		FunctionHead head = getFunctionLinkByKey(fkey, txn);
 		String key = null;
-		key = fkey + "^" + EntityUtil.getUUID();
-		FunctionAssign ass = new FunctionAssign();
-		ass.setName(name);
-		ass.setArguments(args);
-		ass.setValue(value);
-		for(Entity exp:func.getArguments()) {
-			if(exp.toString().equals(anObject)) {
-				IdentifierExpression ie = (IdentifierExpression) exp;
-				Definition def = EntityUtil.proxyGetDefinition(ie.getName());
-				if(def == null) {
-					throw new ApplicationException();
-				}
-				args.add(ie.getName());
-			}else {
-				throw new ApplicationException();
-			}
+		key = fkey + "^" + hash;
+		FunctionAssign ass = getFunctionAssignByKey(key, txn);
+		if(ass != null) {
+			ass.setValue(value);
+		}else {
+			ass = new FunctionAssign();
+			ass.setName(name);
+			ass.setArguments(args);
+			ass.setValue(value);
 		}
-		head.setArgumentType(args);
+
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
 
-	    List<FunctionHead> result = getFunctionLink(func, txn);
-	    if(!(result.size() == 0 || result == null)) {
-	    	throw new ApplicationException("has defined function.");
-	    }
-		TupleBinding<FunctionAssign> binding = new FunctionAssignBinding();
+	    TupleBinding<FunctionAssign> binding = new FunctionAssignBinding();
 		binding.objectToEntry(ass, theData);
 		functionAssign.put(txn, theKey, theData);
 	}
 	
+	/**
+	 * functionAssignµÄkey£º
+	 * name+"#"args.size+"%"+hashCode
+ 	 */
+	public FunctionAssign getFunctionAssign(String name, List<Entity> args, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		
+		return null;
+	}
+	
+	public FunctionAssign getFunctionAssignByKey(String key, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+	    OperationStatus found = functionAssign.get(txn, theKey, theData, LockMode.DEFAULT);
+	    if(found == OperationStatus.SUCCESS) {
+	    	TupleBinding<FunctionAssign> binding = new FunctionAssignBinding();
+	    	FunctionAssign ret = binding.entryToObject(theData);
+	    	return ret;
+	    }
+		return null;
+	}
 	public void putFunctionState(FunctionExpression func, Transaction txn)  
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = null;

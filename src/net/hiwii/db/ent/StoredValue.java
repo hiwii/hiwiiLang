@@ -8,6 +8,8 @@ package net.hiwii.db.ent;
  * u:User
  * s:shortString
  * i:InstanceId
+ * c:LongString(clob>Constants.maxString)
+ * b:LongBinary(blob>Constants.maxString)
  * 
  * @author hiwii
  *

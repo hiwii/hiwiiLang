@@ -9,6 +9,7 @@ import org.junit.Test;
 import net.hiwii.cache.CachedItem;
 import net.hiwii.cognition.Expression;
 import net.hiwii.expr.StringExpression;
+import net.hiwii.system.util.StringUtil;
 
 public class MyTest6 {
 	@Test
@@ -116,5 +117,12 @@ public class MyTest6 {
 		System.out.println(sdf.format(cal.getTime())); 
 		cal.add(Calendar.HOUR_OF_DAY, 100);
 		System.out.println(sdf.format(cal.getTime())); 
+	}
+	
+	@Test
+	public void testMD5(){
+		String url = "http://www.baidu.com";
+        String generateHash = StringUtil.hashOperation(url);
+        System.out.println(generateHash);
 	}
 }

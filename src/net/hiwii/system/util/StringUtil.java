@@ -1,6 +1,8 @@
 package net.hiwii.system.util;
 
+import java.math.BigInteger;
 import java.net.SocketAddress;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -9,10 +11,12 @@ import java.util.NavigableMap;
 
 import net.hiwii.cognition.Expression;
 import net.hiwii.cognition.result.JudgmentResult;
+import net.hiwii.db.ent.StoredValue;
 import net.hiwii.expr.FunctionExpression;
 import net.hiwii.expr.IdentifierExpression;
 import net.hiwii.expr.NullExpression;
 import net.hiwii.expr.StringExpression;
+import net.hiwii.system.Constants;
 import net.hiwii.system.SystemCharacter;
 import net.hiwii.system.SystemDefinition;
 import net.hiwii.system.exception.ApplicationException;
@@ -694,5 +698,70 @@ public class StringUtil {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
 		String ret = sdf.format(cal.getTime());
 		return ret;
+	}
+
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
+	public static String hashOperation(String input){
+		try {
+			//参数校验
+			if (null == input) {
+				return null;
+			}
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			md.update(input.getBytes());
+			byte[] digest = md.digest();
+			BigInteger bi = new BigInteger(1, digest);
+			String hashText = bi.toString(16);
+			while(hashText.length() < 32){
+				hashText = "0" + hashText;
+			}
+			return hashText;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * maxArgs:2,
+	 * 超过maxArgs的参数个数才会真正执行hash运算。
+	 * 
+	 */
+	public static String hashOperation(List<StoredValue> args) {
+		String str = "";
+		if(args.size() <= Constants.maxArgs) {			
+			for(StoredValue sv:args) {
+//				if(sv.getType() == 'b') {
+//					str = str + sv.getType() + sv.getValue();
+//				}
+				str = str + sv.getType() + sv.getValue();
+			}
+			return str;
+		}
+		for(StoredValue sv:args) {
+			str = str + sv.getType() + sv.getValue();
+		}
+		String hash = hashOperation(str);
+		return hash;
+	}
+	
+	public static String hashArgument(List<Entity> args) {
+		List<StoredValue> values = new ArrayList<StoredValue>();
+		for(Entity ent:args) {
+			StoredValue sv;
+			try {
+				sv = EntityUtil.entityToRecord(ent);
+				values.add(sv);
+			} catch (ApplicationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+		}
+		String hash = hashOperation(values);
+		return hash;
 	}
 }
