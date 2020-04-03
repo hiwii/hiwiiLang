@@ -3423,13 +3423,15 @@ public class HiwiiContext extends Entity {
 		return new NormalEnd();
 	}
 	public Expression doDefine(Expression source, Expression expr){
-		if(expr instanceof IdentifierExpression){
-			IdentifierExpression ie = (IdentifierExpression) expr;
-			String type = ie.getName();
-			if(type.equals("State")) {
-				return newStatus(source);
-			}
-		}
+//		if(expr instanceof IdentifierExpression){
+//			IdentifierExpression ie = (IdentifierExpression) expr;
+//			String type = ie.getName();
+//			if(type.equals("State")) {
+//				return newStatus(source);
+//			}else if(type.equals("Action")) {
+//				return newAction(source);
+//			}
+//		}
 		if(expr instanceof BinaryOperation){
 			BinaryOperation bo = (BinaryOperation) expr;
 			if(bo.getOperator().equals(":")){
@@ -3759,6 +3761,15 @@ public class HiwiiContext extends Entity {
 			return new HiwiiException();
 		}
 
+		if(expr instanceof IdentifierExpression){
+			IdentifierExpression ie = (IdentifierExpression) expr;
+			if(ie.getName().equals("State")) {
+				return newStatus(source);
+			}
+			if(ie.getName().equals("Action")) {
+				return newAction(source);
+			}
+		}
 		Definition def = new Definition();
 		String master = "";
 		if(getLadder().getSessionContext().getSession().getUser() != null){
@@ -3772,12 +3783,6 @@ public class HiwiiContext extends Entity {
 		def.setMaster(master);
 		if(expr instanceof IdentifierExpression){
 			IdentifierExpression ie = (IdentifierExpression) expr;
-			if(ie.getName().equals("State")) {
-				return newStatus(source);
-			}
-			if(ie.getName().equals("Action")) {
-				return newStatus(source);
-			}
 			try {
 				Definition parent = EntityUtil.proxyGetDefinition(ie.getName());
 				if(parent == null){
