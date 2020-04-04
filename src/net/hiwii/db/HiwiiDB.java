@@ -628,8 +628,12 @@ public class HiwiiDB {
 			if (fCalculationDef != null) {
 				fCalculationDef.close();
 			}
+			
 			if (indexfCalculationInst != null) {
 				indexfCalculationInst.close();
+			}
+			if (fCalculationInst != null) {
+				fCalculationInst.close();
 			}
 			if (fCalculationDef != null) {
 				fCalculationDef.close();
@@ -2318,47 +2322,23 @@ public class HiwiiDB {
 			return null;
 		}
 		DatabaseEntry theKey = new DatabaseEntry(sign0.getBytes("UTF-8"));
-		DatabaseEntry uid = new DatabaseEntry();
 		DatabaseEntry key = new DatabaseEntry();
 	    DatabaseEntry data = new DatabaseEntry();
 	    SecondaryCursor cursor = null;
-	    SecondaryCursor cur2 = null;
 	    List<HiwiiInstance> list = new ArrayList<HiwiiInstance>();
 		try {
 			cursor = indexInstType.openCursor(null, null);
 			OperationStatus ret1 = cursor.getSearchKeyRange(theKey, key, data, LockMode.DEFAULT);
-			cur2 = indexAssignHost.openCursor(null, null);			
-			TupleBinding<StoredValue> dataBinding = new ValueBinding();	
-			String dname, sign;
+			String sign;
 			while(ret1 == OperationStatus.SUCCESS){
 				HiwiiInstance ret = new HiwiiInstance();
 				sign = new String(theKey.getData(), "UTF-8");
 				if(!StringUtil.matched(sign, sign0)){
 					break;
 				}
-				dname = getDefinitionName(sign);
-				ret.setClassName(dname);
-				ret.setUuid(new String(key.getData(), "UTF-8"));
-				uid = new DatabaseEntry(ret.getUuid().getBytes("UTF-8"));
-				
-				OperationStatus status = indexInstanceName.get(null, uid, key, data, LockMode.DEFAULT);
-				if(status == OperationStatus.SUCCESS){
-					String name0 = new String(key.getData(), "UTF-8");
-					ret.setName(name0);
-				}
-				OperationStatus ret2 = cur2.getSearchKey(uid, key, data, LockMode.DEFAULT);
-					
-				while(ret2 == OperationStatus.SUCCESS){
-					StoredValue rec = dataBinding.entryToObject(data);
-					Assignment ass = EntityUtil.recordToAssignment(rec);
-					String pkey = new String(key.getData(), "UTF-8");
-					int pos = pkey.indexOf('@');
-					if(pos > 0){
-						ass.setName(pkey.substring(0, pos));
-					}
-					ret.getAssignments().put(ass.getName(), ass);
-					ret2 = cur2.getNextDup(uid, key, data, LockMode.DEFAULT);
-				}
+				String uuid = new String(key.getData(), "UTF-8");
+				ret = getInstanceById(uuid);
+
 				if(limits != null){
 					Expression judge = EntityUtil.judgeEntityLimit(ret, limits);
 					if(EntityUtil.judge(judge)){
@@ -2387,9 +2367,6 @@ public class HiwiiDB {
 			try {
 				if (cursor != null) {
 					cursor.close();
-				}
-				if (cur2 != null) {
-					cur2.close();
 				}
 			} catch(DatabaseException e) {
 				throw new ApplicationException();
@@ -3238,9 +3215,10 @@ public class HiwiiDB {
 		if(ent instanceof HiwiiInstance) {
 			HiwiiInstance inst = (HiwiiInstance) ent;
 			if(!inst.isPersisted()) {
-				inst.setPersisted(true);
-				inst.setUuid(EntityUtil.getUUID());
-				putInstance(inst, txn);
+//				inst.setPersisted(true);
+//				inst.setUuid(EntityUtil.getUUID());
+//				putInstance(inst, txn);
+				throw new ApplicationException();//不能存储内存对象。
 			}
 			rec = EntityUtil.entityToRecord(inst);
 		}else {
@@ -4073,13 +4051,17 @@ public class HiwiiDB {
 
 	public void putIdAction(String key, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
+		boolean boo = hasAction(key, txn);
+		if(!boo) {
+			throw new ApplicationException();
+		}
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
-	    OperationStatus status = idAction.get(null, theKey, theData, LockMode.DEFAULT);
-		if(status == OperationStatus.SUCCESS){
-			throw new ApplicationException();
-		}
+//	    OperationStatus status = idAction.get(txn, theKey, theData, LockMode.DEFAULT);
+//		if(status == OperationStatus.SUCCESS){
+//			throw new ApplicationException();
+//		}
 
 		idAction.put(txn, theKey, theData);
 	}
@@ -4192,9 +4174,9 @@ public class HiwiiDB {
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
 	    OperationStatus status = idAction.get(null, theKey, theData, LockMode.DEFAULT);
-		if(status == OperationStatus.SUCCESS){
-			throw new ApplicationException();
-		}
+//		if(status == OperationStatus.SUCCESS){
+//			throw new ApplicationException();
+//		}
 
 		idAction.put(txn, theKey, theData);
 	}
@@ -4206,9 +4188,9 @@ public class HiwiiDB {
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
 	    OperationStatus status = idAction.get(null, theKey, theData, LockMode.DEFAULT);
-		if(status == OperationStatus.SUCCESS){
-			throw new ApplicationException();
-		}
+//		if(status == OperationStatus.SUCCESS){
+//			throw new ApplicationException();
+//		}
 
 		idAction.put(txn, theKey, theData);
 	}
@@ -4931,7 +4913,7 @@ public class HiwiiDB {
 		idDecision.put(txn, theKey, theData);
 	}
 	
-	public void putAction(String key, Declaration dec, Transaction txn)
+	public void putIdAction(String key, Declaration dec, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();

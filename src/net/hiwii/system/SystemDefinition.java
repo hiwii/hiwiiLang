@@ -45,7 +45,7 @@ public class SystemDefinition {
 		defs.put("Set", new SetClass());
 		defs.put("Array", new Array());
 		defs.put("Tuple", new Tuple());
-		defs.put("Expression", new SimpleDefinition("Expression","L.E"));
+		defs.put("Expression", new SimpleDefinition("Expression","L.O.E"));
 		
 		defs.put("Action", new SimpleDefinition("Action","L.A"));
 		defs.put("Judgment", new SimpleDefinition("Judgment","L.J"));//status
@@ -61,12 +61,12 @@ public class SystemDefinition {
 		
 		defs.put("Round", new SimpleDefinition("Round","L.C.R"));
 		
-		defs.put("String", new SimpleDefinition("String","L.C.E.S"));
-		defs.put("Number", new SimpleDefinition("Number","L.C.E.N"));
+		defs.put("String", new SimpleDefinition("String","L.O.E.S"));    //"L.C.E.S"
+		defs.put("Number", new SimpleDefinition("Number","L.O.E.N"));  //"L.C.E.N"
 //		defs.put("Character", "L.C.E.C"); character is regular expression,using "c" instead of 'c'
 		
-		defs.put("Integer", new SimpleDefinition("Integer","L.C.E.N.I"));
-		defs.put("Float", new SimpleDefinition("Float","L.C.E.N.F"));
+		defs.put("Integer", new SimpleDefinition("Integer","L.O.E.N.I"));
+		defs.put("Float", new SimpleDefinition("Float","L.O.E.N.F"));
 		
 		defs.put("User", new UserDefinition());
 		defs.put("Group", new GroupDefinition());
@@ -95,8 +95,8 @@ public class SystemDefinition {
 		
 //		idname.put("Round", new SimpleDefinition("LocalHost","L.C.R"));
 		
-		idname.put("L.C.E.S", "String");
-		idname.put("L.C.E.N", "Number");
+		idname.put("L.O.E.S", "String");
+		idname.put("L.O.E.N", "Number");
 //		idname.put("Character", "L.C.E.C"); character is regular expression,using "c" instead of 'c'
 		
 		idname.put("L.C.E.N.I", "Integer");

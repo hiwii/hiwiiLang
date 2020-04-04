@@ -605,8 +605,15 @@ public class HiwiiContext extends Entity {
 		}else if(expr instanceof MappingExpression){
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
-
-			return doMappingAction(name, me.getArguments());
+			if(name.equals("express")) {
+				return doMappingAction(name, me.getArguments());
+			}
+			List<Expression> list = new ArrayList<Expression>();
+			for(Expression exp:me.getArguments()) {
+				Expression ret = doLambdaCalculation(exp);
+				list.add(ret);
+			}
+			return doMappingAction(name, list);
 		}else if(expr instanceof ActionAtSubject){
 			ActionAtSubject sv = (ActionAtSubject) expr;
 			Expression result = doAction(sv.getAction());
@@ -3154,11 +3161,11 @@ public class HiwiiContext extends Entity {
 				return new HiwiiException();
 			}
 			return newSymbol(args.get(0));
-		}else if(name.equals("expression")){
-			if(args.size() != 1){
+		}else if(name.equals("express")){
+			if(args.size() != 2){
 				return new HiwiiException();
 			}
-			return newExpression(args.get(0));
+			return newExpression(args.get(0), args.get(1));
 		}else if(name.equals("expressions")){
 			//s表示静态
 			if(args.size() != 1){
@@ -3458,6 +3465,9 @@ public class HiwiiContext extends Entity {
 					return doRefer(right);
 				}else if(cogn.equals("Object")||cogn.equals("Reference")){ //before “Object"
 					Entity target = doCalculation(right);
+					if(target instanceof HiwiiException) {
+						return (HiwiiException)target;
+					}
 					return defineReference(source, target);
 				}else if(cogn.equals("Calculation") || cogn.equals("Decision") || cogn.equals("Action")){
 					char tp = 0;
@@ -3473,26 +3483,6 @@ public class HiwiiContext extends Entity {
 					//原子Action
 				}else if(cogn.equals("Process")) {
 					
-				}else if(cogn.equals("Calculation_intf") || cogn.equals("Decision_intf") || cogn.equals("Action_intf")){
-					char tp = 0;
-					if(cogn.equals("Action_intf")){
-						tp = 'a';
-					}else if(cogn.equals("Calculation_intf")){
-						tp = 'c';
-					}else{
-						tp = 'd';
-					}
-					return doDeclareInterface(tp, right);
-				}else if(cogn.equals("Calculation_impl") || cogn.equals("Decision_impl") || cogn.equals("Action_impl")){
-					char tp = 0;
-					if(cogn.equals("Action_impl")){
-						tp = 'a';
-					}else if(cogn.equals("Calculation_impl")){
-						tp = 'c';
-					}else{
-						tp = 'd';
-					}
-					return doDeclareImplement(tp, right);
 				}else if(cogn.equals("Adjective")){ //原为new(Status
 					return newStatus(right);
 				}else if(cogn.equals("Verb")){
@@ -3916,26 +3906,6 @@ public class HiwiiContext extends Entity {
 					tp = 'd';
 				}
 				return unDeclare(tp, right);
-			}else if(cogn.equals("Calculation_intf") || cogn.equals("Decision_intf") || cogn.equals("Action_intf")){
-				char tp = 0;
-				if(cogn.equals("Action_intf")){
-					tp = 'a';
-				}else if(cogn.equals("Calculation_intf")){
-					tp = 'c';
-				}else{
-					tp = 'd';
-				}
-				return doDeclareInterface(tp, right);
-			}else if(cogn.equals("Calculation_impl") || cogn.equals("Decision_impl") || cogn.equals("Action_impl")){
-				char tp = 0;
-				if(cogn.equals("Action_impl")){
-					tp = 'a';
-				}else if(cogn.equals("Calculation_impl")){
-					tp = 'c';
-				}else{
-					tp = 'd';
-				}
-				return doDeclareImplement(tp, right);
 			}else if(cogn.equals("Adjective")){ //原为new(Status
 				return newStatus(right);
 			}else if(cogn.equals("Verb")){
@@ -4283,6 +4253,7 @@ public class HiwiiContext extends Entity {
 					return new HiwiiException();
 				}
 				HiwiiInstance vo = new HiwiiInstance();
+				vo.setPersisted(true);
 				vo.setClassName(name);
 				txn = db.beginTransaction();
 				
@@ -4421,11 +4392,12 @@ public class HiwiiContext extends Entity {
 			String value = ((StringExpression)val).getValue();
 			if(ass.getName().equals("id")){
 				grp.setGroupId(value);
-			}else if(ass.getName().equals("name")){
-				grp.setName(value);
 			}else if(ass.getName().equals("note")){
 				grp.setNote(value);
 			}
+//			else if(ass.getName().equals("name")){
+//				grp.setName(value);
+//			}
 		}
 		if(grp.getName() == null){
 			grp.setName(grp.getGroupId());
@@ -5238,9 +5210,9 @@ public class HiwiiContext extends Entity {
 				}
 			}
 			temp++;
-			if(temp >= 10){
-				break;  //为防止测试环境压力大，每次测试最多允许10次循环。
-			}
+//			if(temp >= 10){
+//				break;  //为防止测试环境压力大，每次测试最多允许10次循环。
+//			}
 		}
 		return new NormalEnd();
 	}
@@ -6249,6 +6221,19 @@ public class HiwiiContext extends Entity {
 				if(fe.getArguments().size() == 0) {
 					return new HiwiiException();
 				}
+				for(Expression exp:fe.getArguments()) {
+					if(!(exp instanceof IdentifierExpression)) {
+						return new HiwiiException();
+					}
+					IdentifierExpression ie = (IdentifierExpression) exp;
+//					if(ie.getName().equals("Object")) {
+//						return new HiwiiException();
+//					}
+//					Definition def = EntityUtil.proxyGetDefinition(ie.getName());
+//					if(def == null) {
+//						return new HiwiiException();
+//					}
+				}
 				name = fe.getName();
 				String key = name + "#" + fe.getArguments().size();
 				db.putAction(key, null);
@@ -7184,6 +7169,19 @@ public class HiwiiContext extends Entity {
 		}
 	}
 	
+	public Expression newExpression(Expression source, Expression expr){
+		if(!(source instanceof IdentifierExpression)){
+			return new HiwiiException();
+		}
+		IdentifierExpression ie = (IdentifierExpression) source;
+		String name = ie.getName();
+		if(expressions.containsKey(name)) {
+			return new HiwiiException();
+		}
+		expressions.put(ie.getName(), expr);
+		return new NormalEnd();
+	}
+	
 	public Expression newExpression(Expression expr){
 		if(!(expr instanceof BinaryOperation)){
 			return new HiwiiException();
@@ -7564,123 +7562,6 @@ public class HiwiiContext extends Entity {
 				}
 			}
 		}
-
-		return new NormalEnd();
-	}
-	/**
-	 * interface declaration
-	 * format:new[Calculation_intf:identifier or function]
-	 * temp:condition expression not allowed as interface, can only be set as implementation
-	 * @param type
-	 * @param expr
-	 * @return
-	 */
-	public Expression doDeclareInterface(char type, Expression expr){
-//		String name = null;
-//		String num = null;
-//		Declaration dec = null;
-//		String key = null;
-//
-//		if(expr instanceof IdentifierExpression){
-//			IdentifierExpression ie = (IdentifierExpression) expr;
-//			name = ie.getName();
-//			num = "0";
-//			dec = new Declaration();
-//			dec.setName(name);
-//			dec.setStatement(null);
-//			key = name;
-//			calculs.put(key, dec);
-//		}else if(expr instanceof FunctionExpression){
-//			FunctionExpression fe = (FunctionExpression) expr;
-//			name = fe.getName();
-//			num = String.valueOf(fe.getArguments().size());
-//			FunctionDeclaration fd = new FunctionDeclaration();
-//			fd.setName(name);
-//			key = name + "#" + num;
-//			//			try {
-//			//				List<String> args = EntityUtil.parseDeclaration(fe.getArguments());
-//			//				fd.setArguments(args);
-//			//			} catch (ApplicationException e) {
-//			//				return new HiwiiException();//参数错误
-//			//			}
-//
-//			fd.setStatement(null);
-//			intf_fcalculs.put(key, fd);
-//		}else{
-//			return new HiwiiException();
-//		}
-		return new NormalEnd();
-	}
-
-	public Expression doDeclareImplement(char type, Expression expr){
-//		Expression left = null;
-//		Expression right = null;
-//		String name = null;
-//		String num = null;
-//		Declaration dec = null;
-//		String key = null;
-//
-//		if(expr instanceof BinaryOperation){
-//			BinaryOperation bo = (BinaryOperation) expr;
-//			if(!bo.getOperator().equals("=")){
-//				return new HiwiiException();
-//			}
-//			left = bo.getLeft();
-//			right = bo.getRight();
-//
-//			if(left instanceof IdentifierExpression){
-//				IdentifierExpression ie = (IdentifierExpression) left;
-//				name = ie.getName();
-//				num = "0";
-//				dec = new Declaration();
-//				dec.setName(name);
-//				dec.setStatement(right);
-//				key = name;
-//				calculs.put(key, dec);//TODO identifier implement
-//			}else if(left instanceof FunctionExpression){
-//				FunctionExpression fe = (FunctionExpression) left;
-//				name = fe.getName();
-//				num = String.valueOf(fe.getArguments().size());
-//				FunctionDeclaration fd = new FunctionDeclaration();
-//				fd.setName(name);
-//				key = name + "#" + num;
-//				//				try {
-//				//					List<String> args = EntityUtil.parseDeclaration(fe.getArguments());
-//				//					fd.setArguments(args);
-//				//				} catch (ApplicationException e) {
-//				//					return new HiwiiException();//参数错误
-//				//				}
-//
-//				fd.setStatement(right);
-//				impl_fcalculs.put(key, fd);
-//			}else if(left instanceof ConditionExpression){
-//				ConditionExpression ce = (ConditionExpression) left;
-//				//only function expression allowed case conditionExpression.
-//				Expression body = ce.getBody();
-//				if(!(body instanceof FunctionExpression)){
-//					return new HiwiiException();
-//				}
-//				FunctionExpression fe = (FunctionExpression) body;
-//				name = fe.getName();
-//				num = String.valueOf(fe.getArguments().size());
-//				ConditionDeclaration fd = new ConditionDeclaration();
-//				fd.setName(name);
-//				key = name + "#" + num + "%" + EntityUtil.getUUID();
-//				//				try {
-//				//					List<String> args = EntityUtil.parseDeclaration(fe.getArguments());
-//				//					fd.setArguments(args);
-//				//				} catch (ApplicationException e) {
-//				//					return new HiwiiException();//参数错误
-//				//				}
-//				fd.setConditions(ce.getConditions());
-//				fd.setStatement(right);
-//				impl_fcalculs.put(key, fd);
-//			}else{
-//				return new HiwiiException();
-//			}
-//		}else{
-//			return new HiwiiException();
-//		}
 
 		return new NormalEnd();
 	}
