@@ -3,6 +3,7 @@ package net.hiwii.user;
 import java.util.List;
 
 import net.hiwii.cognition.Expression;
+import net.hiwii.expr.StringExpression;
 import net.hiwii.message.HiwiiException;
 import net.hiwii.system.util.EntityUtil;
 import net.hiwii.view.Entity;
@@ -35,6 +36,13 @@ public class User extends Peer {
 	}
 	
 	
+	@Override
+	public Entity doIdentifierCalculation(String name) {
+		if(name.equals("userid")) {
+			return new StringExpression(userid);
+		}
+		return null;
+	}
 	@Override
 	public Expression doFunctionDecision(String name, List<Entity> args) {
 		if(name.equals("EQ")) {

@@ -296,6 +296,7 @@ public class LocalHost extends Entity{
 		if(weixins.containsKey(userId)){
 			return weixins.get(userId);
 		}
+		System.out.print("Î¢ÐÅÓÃ»§µÇÂ¼:" + userId);
 		SessionContext context = new SessionContext();
 		NetTerminal nt = new NetTerminal();
 		Session session = new Session();

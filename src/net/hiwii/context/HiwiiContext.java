@@ -1468,6 +1468,18 @@ public class HiwiiContext extends Entity {
 		}else if(expr instanceof MappingExpression){
 			MappingExpression me = (MappingExpression) expr;
 			String name = me.getName();
+			if(name.equals("negate")) {
+				if(me.getArguments().size() != 1) {
+					return new HiwiiException();
+				}
+				Expression ret = doDecision(subject, me.getArguments().get(0));
+				if(ret instanceof JudgmentResult) {
+					JudgmentResult jr = (JudgmentResult) ret;
+					jr.negate();
+					return jr;
+				}
+				return ret;
+			}
 			return subject.doMappingDecision(name, me.getArguments());
 		}else if(expr instanceof SubjectVerb){
 			SubjectVerb sv = (SubjectVerb) expr;
@@ -1479,7 +1491,7 @@ public class HiwiiContext extends Entity {
 			if(result == null){
 				return new HiwiiException();//operator not recognized
 			}
-			return doDecision(result);  //mapping or function
+			return doDecision(subject, result);  //mapping or function
 		}else if(expr instanceof BinaryOperation){
 			BinaryOperation bo = (BinaryOperation) expr;
 			Expression result = binaryTranslate(bo);
@@ -4289,6 +4301,20 @@ public class HiwiiContext extends Entity {
 				ReturnResult result = new ReturnResult();
 				result.setResult(vo);
 				return result;
+			}else if(expr instanceof IdentifierBrace) {
+				IdentifierBrace ib = (IdentifierBrace) expr;
+				
+				Definition def = null;
+				name = ib.getName();
+				def = EntityUtil.proxyGetDefinition(name);
+				if(def == null) {
+					return new HiwiiException();
+				}
+				String defname = def.getName();
+				if(defname.equals("User") || defname.equals("Group") || defname.equals("Role")) {
+					return new HiwiiException();
+				}
+				return putInstance(def, ib.getConditions());
 			}else if(expr instanceof BinaryOperation) {
 				BinaryOperation bo = (BinaryOperation) expr;
 				if(!bo.getOperator().equals(":")) {
@@ -4300,6 +4326,8 @@ public class HiwiiContext extends Entity {
 					IdentifierExpression ie = (IdentifierExpression) left;
 					name = ie.getName();
 					def = EntityUtil.proxyGetDefinition(name);
+				}else {
+					return new HiwiiException();
 				}
 				String defname = def.getName();
 				if(defname.equals("User") || defname.equals("Group") || defname.equals("Role")) {
@@ -4331,9 +4359,49 @@ public class HiwiiContext extends Entity {
 	
 	/**
 	 * put[definition:{decorations}]
+	 * 描述包括：
+	 * assignment: link := value
+	 * judgment: state :: true/false
+	 * childObject: Object:expression or Definition:expression
+	 * Declaration: Declaration:[Calculation/Decision/Action:expr, expression]
+	 * 结构描述：有几个Link，State，childObject
+	 * 执行描述：声明执行的完整性(transaction属性), 权限，pre/post/[begin/end]
 	 * @param expr
 	 * @return
 	 */
+	public Expression putInstance(Definition def, List<Expression> args){
+		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+		Transaction txn = null;
+		try {
+			HiwiiInstance vo = new HiwiiInstance();
+			txn = db.beginTransaction();
+			String key = db.putInstance(def, args, null, this);
+			txn.commit();
+			Session sess = getLadder().getSessionContext().getSession();
+			sess.putEntity(vo);
+			vo.setUuid(key);
+			ReturnResult result = new ReturnResult();
+			result.setResult(vo);
+			return result;
+//			return new NormalEnd();
+		} catch (DatabaseException e) {
+			return new HiwiiException();
+		} catch (IOException e) {
+			return new HiwiiException();
+		} catch (ApplicationException e) {
+			return new HiwiiException();
+		} catch (Exception e) {
+			return new HiwiiException();
+		} finally{
+			if (txn != null) {
+				txn.abort();
+				txn = null;
+			}
+		}
+		//		}
+//		return new NormalEnd();
+	}
+	
 	public Expression putInstance(Definition def0, Expression prg){
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		Transaction txn = null;

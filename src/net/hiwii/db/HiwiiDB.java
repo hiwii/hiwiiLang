@@ -1269,6 +1269,55 @@ public class HiwiiDB {
 		return key;
 	}
 	
+	public String putInstance(Definition def, List<Expression> content, Transaction txn, HiwiiContext  context)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = EntityUtil.getUUID();  //new key
+		String sign = "";
+		sign = def.getSignature();
+		
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry(sign.getBytes("UTF-8"));
+
+		entityDatabase.put(txn, theKey, theData);
+		for(Expression expr:content) {
+			if(expr instanceof BinaryOperation){
+				BinaryOperation bo = (BinaryOperation) expr;
+				Expression left = bo.getLeft();
+				Expression right = bo.getRight();
+
+				if(bo.getOperator().equals(":=")){
+					Entity val = context.doCalculation(right);
+					if(val instanceof HiwiiException){
+						throw new ApplicationException();
+					}
+					//property set
+					if(left instanceof IdentifierExpression){
+						IdentifierExpression ie = (IdentifierExpression) left;
+						putIdAssignment(key, ie.getName(), val, txn);
+					}else{
+						throw new ApplicationException();
+					}
+				}else if(bo.getOperator().equals("::")){
+					Expression ret = context.doDecision(right);
+					if(!(ret instanceof JudgmentResult)) {
+						throw new ApplicationException();
+					}
+					JudgmentResult jr = (JudgmentResult) ret;
+					if(left instanceof IdentifierExpression){
+						IdentifierExpression ie = (IdentifierExpression) left;
+						turnIdJudgment(key, ie.getName(), jr, txn);
+					}else{
+						throw new ApplicationException();
+					}
+				}
+			}else{
+				throw new ApplicationException();
+			}
+		}
+
+		return key;
+	}
+	
 	public String putInstance(HiwiiInstance inst, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = null;  //new key
@@ -3195,6 +3244,138 @@ public class HiwiiDB {
 		}
 	}
 	
+	public void putFunctionAction(FunctionExpression func, Transaction txn)  
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String key = null;
+		key = func.getName() + "#" + func.getArguments().size() + "%" + EntityUtil.getUUID();
+		FunctionHead head = new FunctionHead();
+		head.setType("Action");
+		List<String> args = new ArrayList<String>();
+		for(Expression exp:func.getArguments()) {
+			if(exp instanceof IdentifierExpression) {
+				IdentifierExpression ie = (IdentifierExpression) exp;
+				Definition def = EntityUtil.proxyGetDefinition(ie.getName());
+				if(def == null) {
+					throw new ApplicationException();
+				}
+				args.add(ie.getName());
+			}else {
+				throw new ApplicationException();
+			}
+		}
+		head.setArgumentType(args);
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    List<FunctionHead> result = getFunctionState(func, txn);
+	    if(!(result.size() == 0 || result == null)) {
+	    	throw new ApplicationException("has defined function.");
+	    }
+		TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+		binding.objectToEntry(head, theData);
+		functionState.put(txn, theKey, theData);
+	}
+	
+	public List<FunctionHead> getFunctionAction(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+	    List<FunctionHead> result = new ArrayList<FunctionHead>();
+		try {
+			cursor = indexFunctionState.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match1 = true, match2 = true;
+				FunctionHead head = binding.entryToObject(data);
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(type, head.getArgumentType().get(i))) {
+						match1 = false;
+						break;
+					}
+				}
+				//需要判定两次。函数定义即不能包容以前，也不能被以前的函数包容。
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+						match2 = false;
+						break;
+					}
+				}
+				
+				if(match1 && match2) {
+					result.add(head);
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+	    	return result;
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
+	public boolean hasFunctionAction(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		List<FunctionHead> result = getFunctionAction(func, txn);
+		if(result.size() == 0 || result == null) {
+			return false;
+		}else {
+			return true;
+		}
+	}
+	
+	public FunctionHead deleteFunctionAction(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+//	    List<FunctionHead> result = new ArrayList<FunctionHead>();
+		try {
+			cursor = indexFunctionState.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match = true;
+				FunctionHead head = binding.entryToObject(data);
+				List<Expression> args = func.getArguments();
+				for(int i = 0;i<args.size();i++) {
+					String type = args.get(i).toString();
+//					if(!EntityUtil.judgeDefinitionIsAnother(head.getArgumentType().get(i), type)) {
+//						match = false;
+//						break;
+//					}
+					if(!head.getArgumentType().get(i).equals(type)) {
+						match = false;
+						break;
+					}
+				}
+				
+				if(match) {
+					cursor.delete();
+					return head;
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+//	    	return null;
+	    	throw new ApplicationException("not found!");
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
 	public void putMappingLink(MappingExpression map, String type, Transaction txn)  
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String key = null;
@@ -3247,6 +3428,45 @@ public class HiwiiDB {
 		TupleBinding<StoredValue> dataBinding = new ValueBinding();
 		StoredValue rec = EntityUtil.entityToRecord(ass.getValue());
 		dataBinding.objectToEntry(rec, theData);
+		idAssign.put(txn, theKey, theData);
+	}
+	
+	public void putIdAssignment(String name, Entity ent, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		Property prop = getProperty(name, txn);//, this.getClassName());
+		if(prop == null){
+			throw new ApplicationException();
+		}
+		if(!EntityUtil.judgeValueToProperty(ent, prop)){
+			throw new ApplicationException();
+		}
+		DatabaseEntry theKey = new DatabaseEntry(name.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    //如果没有则创建，如果有记录，则覆盖。
+	    StoredValue value = EntityUtil.entityToRecord(ent);
+		TupleBinding<StoredValue> dataBinding = new ValueBinding();
+		dataBinding.objectToEntry(value, theData);
+		idAssign.put(txn, theKey, theData);
+	}
+	
+	public void putIdAssignment(String instId, String name, Entity ent, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		Property prop = getProperty(name, txn);//, this.getClassName());
+		if(prop == null){
+			throw new ApplicationException();
+		}
+		if(!EntityUtil.judgeValueToProperty(ent, prop)){
+			throw new ApplicationException();
+		}
+		String key = name + "@" + instId;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    //如果没有则创建，如果有记录，则覆盖。
+	    StoredValue value = EntityUtil.entityToRecord(ent);
+		TupleBinding<StoredValue> dataBinding = new ValueBinding();
+		dataBinding.objectToEntry(value, theData);
 		idAssign.put(txn, theKey, theData);
 	}
 	
@@ -3918,6 +4138,36 @@ public class HiwiiDB {
 		judgeDatabase.put(txn, theKey, theData);
 	}
 	
+	public void turnIdJudgment(String name, JudgmentResult jdg, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		if(!hasStatus(name, txn)) {
+			throw new ApplicationException();
+		}
+		String key = name;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+
+		BooleanBinding binding = new BooleanBinding();
+		binding.objectToEntry(EntityUtil.judge(jdg), theData);
+		
+		judgeDatabase.put(txn, theKey, theData);
+	}
+	
+	public void turnIdJudgment(String instId, String name, JudgmentResult jdg, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		if(!hasStatus(name, txn)) {
+			throw new ApplicationException();
+		}
+		String key = name + "@" + instId;
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+
+		BooleanBinding binding = new BooleanBinding();
+		binding.objectToEntry(EntityUtil.judge(jdg), theData);
+		
+		judgeDatabase.put(txn, theKey, theData);
+	}
+	
 	public void turnJudgment(String key, JudgmentResult jdg, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
@@ -4007,7 +4257,7 @@ public class HiwiiDB {
 
 	public JudgmentResult getInstanceJudgment(HiwiiInstance inst, String name, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String key = name + "&" + inst.getUuid();
+		String key = name + "@" + inst.getUuid();
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 		OperationStatus status = judgeDatabase.get(null, theKey, theData, LockMode.DEFAULT);

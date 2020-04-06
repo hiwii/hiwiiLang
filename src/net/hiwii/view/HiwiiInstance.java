@@ -451,29 +451,15 @@ public class HiwiiInstance extends Entity {
 		try {
 			if(ass == null){
 				ass = new Assignment();
-				String pkey = name + "@" + uuid;
-				Property prop = EntityUtil.proxyGetProperty(name);//, this.getClassName());
-						//takeFromEntity(name, this);
-				if(prop == null){
-					return new HiwiiException();
-				}
-				if(!EntityUtil.judgeValueToProperty(value, prop)){
-					return new HiwiiException();
-				}
 				ass.setValue(value);
 				ass.setName(name);
 //				ass.setProp(prop);
-				db.putAssignment(pkey, ass, null);
+				db.putIdAssignment(uuid, name, value, null);
 				this.getAssignments().put(ass.getName(), ass);
 				return new NormalEnd();
 			}else{
-				Property prop = EntityUtil.proxyGetProperty(name, this.getClassName());
-				if(!EntityUtil.judgeValueToProperty(value, prop)){
-					return new HiwiiException();
-				}
-				String pkey = name + "@" + uuid;
 				ass.setValue(value);
-				db.putAssignment(pkey, ass, null);				
+				db.putIdAssignment(uuid, name, value, null);				
 				return new NormalEnd();
 			}
 		} catch (DatabaseException e) {

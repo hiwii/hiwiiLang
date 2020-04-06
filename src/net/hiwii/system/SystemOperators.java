@@ -12,7 +12,7 @@ public class SystemOperators {
 	
 	static{
 		opmap.put("^", new TwoTuple<String, Integer>("pow", 60));
-		opmap.put("!", new TwoTuple<String, Integer>("not", 60));
+//		opmap.put("!", new TwoTuple<String, Integer>("not", 60));
 		
 		opmap.put("@", new TwoTuple<String, Integer>("AT", 60));
 		opmap.put("~", new TwoTuple<String, Integer>("tilde", 60));

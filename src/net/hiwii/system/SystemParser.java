@@ -939,7 +939,7 @@ public class SystemParser implements ScriptParserConstants{
 				SubjectStatus sp = new SubjectStatus();//ActiveVerb±Ì æobject.operation
 				sp.setSubject(formula);
 				sp.setAction(pe0.getExpression());
-				sp.setRight(true);
+				sp.setRight(false);
 				//20160402 added
 				if(end != lastToken){
 					MyToken next = fetchNext(end);					
@@ -1374,6 +1374,15 @@ public class SystemParser implements ScriptParserConstants{
 			Expression pe = getBracket(begin, b);
 			end = b;
 			ret = pe;
+		}else if(begin.kind == BANG){
+			if(begin == lastToken){
+				throw new ApplicationException("err");
+			}
+			MyToken a = fetchNext(begin);
+			ParsedExpression pe = getParsedExpression(a, lastToken);
+			end = pe.getEnd();
+			Expression exp = pe.getExpression();
+			ret = new UnaryOperation(begin.image, exp);
 		}else if(isSymbol(begin)){//symbol
 			if(begin == lastToken){
 				throw new ApplicationException("err");
