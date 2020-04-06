@@ -2057,6 +2057,30 @@ public class HiwiiContext extends Entity {
 		return null;
 	}
 
+	public Entity doIdentifierCalculation(Entity subject, String name, List<Expression> adverb){
+		if(subject instanceof Definition) {
+			Definition def = (Definition) subject;
+			if(name.equals("select")) {
+				try {
+					HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+					TypedEntityList result = db.getMultiInstance(def.getName(), adverb, this);
+					//当name不是定义，返回null。
+					if(result != null){
+						if(result.getItems().size() == 0){
+							return new NullValue();
+						}else if(result.getItems().size() == 1){
+							return result.getItems().get(0);
+						}else{
+							return result;
+						}
+					}			
+				} catch (Exception e) {
+					return new HiwiiException();
+				}
+			}
+		}
+		return null;
+	}
 	/**
 	 * definition{limits...}
 	 * @param name
@@ -8591,7 +8615,7 @@ public class HiwiiContext extends Entity {
 	public Entity selectCalculation(String name){
 		try {
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
-			TypedEntityList result = db.getMultiInstance(name, null);
+			TypedEntityList result = db.getMultiInstance(name, null, this);
 			//当name不是定义，返回null。
 			if(result != null){
 				if(result.getItems().size() == 0){

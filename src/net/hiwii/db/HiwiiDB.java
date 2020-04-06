@@ -2315,6 +2315,72 @@ public class HiwiiDB {
 		}
 	}
 	
+	public TypedEntityList getMultiInstance(String type, List<Expression> limits, HiwiiContext context)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		String sign0 = getDefinitionSign(type);
+		if(sign0 == null){
+			return null;
+		}
+		DatabaseEntry theKey = new DatabaseEntry(sign0.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    SecondaryCursor cursor = null;
+	    List<HiwiiInstance> list = new ArrayList<HiwiiInstance>();
+		try {
+			cursor = indexInstType.openCursor(null, null);
+			OperationStatus ret1 = cursor.getSearchKeyRange(theKey, key, data, LockMode.DEFAULT);
+			String sign;
+			while(ret1 == OperationStatus.SUCCESS){
+				HiwiiInstance ret = new HiwiiInstance();
+				sign = new String(theKey.getData(), "UTF-8");
+				if(!StringUtil.matched(sign, sign0)){
+					break;
+				}
+				String uuid = new String(key.getData(), "UTF-8");
+				ret = getInstanceById(uuid);
+
+				if(limits != null){
+					boolean found = true;
+					for(Expression exp:limits) {
+						Expression judge = context.doDecision(ret, exp);
+						if(!EntityUtil.judge(judge)){
+							found = false;
+							break;
+						}
+					}
+					if(found) {
+						list.add(ret);
+					}
+				}else{
+					list.add(ret);
+				}
+				ret1 = cursor.getNext(theKey, key, data, LockMode.DEFAULT);
+				String index = new String(theKey.getData(), "UTF-8");				
+				if(!index.equals(sign0)){
+					if(!StringUtil.matched(index, sign0)){
+						break;
+					}
+				}
+			}
+			TypedEntityList result = new TypedEntityList();
+			result.setType(type);
+			for(HiwiiInstance item:list){
+				result.add(item);
+			}
+			return result;
+		} catch(DatabaseException e) {
+			throw new ApplicationException();
+		} finally  {
+			try {
+				if (cursor != null) {
+					cursor.close();
+				}
+			} catch(DatabaseException e) {
+				throw new ApplicationException();
+			}
+		}
+	}
+	
 	public TypedEntityList getMultiInstance(String type, List<Expression> limits)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		String sign0 = getDefinitionSign(type);
@@ -2340,9 +2406,11 @@ public class HiwiiDB {
 				ret = getInstanceById(uuid);
 
 				if(limits != null){
-					Expression judge = EntityUtil.judgeEntityLimit(ret, limits);
-					if(EntityUtil.judge(judge)){
-						list.add(ret);
+					for(Expression exp:limits) {
+//						Expression judge = context.doDecision(ret, exp);
+//						if(EntityUtil.judge(judge)){
+//							list.add(ret);
+//						}
 					}
 				}else{
 					list.add(ret);
