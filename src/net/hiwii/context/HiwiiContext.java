@@ -3779,14 +3779,6 @@ public class HiwiiContext extends Entity {
 	}
 	
 	public Expression newDefinition(Expression source, Expression expr){
-		String name = "";
-		if(source instanceof IdentifierExpression){
-			IdentifierExpression ie = (IdentifierExpression) source;
-			name = ie.getName();
-		}else{
-			return new HiwiiException();
-		}
-
 		if(expr instanceof IdentifierExpression){
 			IdentifierExpression ie = (IdentifierExpression) expr;
 			if(ie.getName().equals("State")) {
@@ -3796,6 +3788,15 @@ public class HiwiiContext extends Entity {
 				return newAction(source);
 			}
 		}
+		
+		String name = "";
+		if(source instanceof IdentifierExpression){
+			IdentifierExpression ie = (IdentifierExpression) source;
+			name = ie.getName();
+		}else{
+			return new HiwiiException();
+		}
+
 		Definition def = new Definition();
 		String master = "";
 		if(getLadder().getSessionContext().getSession().getUser() != null){
@@ -6310,25 +6311,8 @@ public class HiwiiContext extends Entity {
 				db.putAction(name, null);
 			}else if(expr instanceof FunctionExpression){
 				FunctionExpression fe = (FunctionExpression) expr;
-				if(fe.getArguments().size() == 0) {
-					return new HiwiiException();
-				}
-				for(Expression exp:fe.getArguments()) {
-					if(!(exp instanceof IdentifierExpression)) {
-						return new HiwiiException();
-					}
-					IdentifierExpression ie = (IdentifierExpression) exp;
-//					if(ie.getName().equals("Object")) {
-//						return new HiwiiException();
-//					}
-//					Definition def = EntityUtil.proxyGetDefinition(ie.getName());
-//					if(def == null) {
-//						return new HiwiiException();
-//					}
-				}
 				name = fe.getName();
-				String key = name + "#" + fe.getArguments().size();
-				db.putAction(key, null);
+				db.putFunctionAction(fe, null);
 			}else if(expr instanceof MappingExpression){
 				MappingExpression fe = (MappingExpression) expr;
 				if(fe.getArguments().size() == 0) {
@@ -7692,7 +7676,7 @@ public class HiwiiContext extends Entity {
 				}else if(type == 'd'){
 //					db.putFunDecision(fd, null);
 				}else{
-//					db.putFunAction(fd, null);
+					db.declareFunctionAction(fe, expr, null);
 				}
 			}else if(source instanceof MappingExpression){
 				MappingExpression me = (MappingExpression) source;
