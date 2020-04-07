@@ -1690,17 +1690,21 @@ public class HiwiiContext extends Entity {
 		
 		try {
 			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
-			FunctionDeclaration fd = db.getFunctionAction(name, args, null, this);
+			FunctionDeclaration fd = db.getFunctionAction(name, args, null);
 			if(fd != null){
-				RuntimeContext rc = getLadder().newRuntimeContext('a');
+				RuntimeContext rc = getLadder().newRuntimeContext('c');
 				int i = 0;
-//				for(Argument arg:fd.getArguments()){
-//					rc.getRefers().put(arg.getName(), args.get(i));
-//					i++;
-//				}
+				for(String vname:fd.getArguments()){
+					rc.getRefers().put(vname, args.get(i));
+					i++;
+				}
 				Expression ret = rc.doAction(fd.getStatement());
 				rc = null;  //ÊÍ·ÅÄÚ´æ
 				return ret;
+//				if(ret instanceof HiwiiException) {
+//					return ret;
+//				}
+//				return new NormalEnd();
 			}
 		} catch (DatabaseException e) {
 			return new HiwiiException();

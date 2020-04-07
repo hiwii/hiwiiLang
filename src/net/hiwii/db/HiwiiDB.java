@@ -3008,6 +3008,44 @@ public class HiwiiDB {
 		return null;
 	}
 	
+	public String getFunctionActionKey(String name, List<Entity> args, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = name + "#" + args.size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+		try {
+			cursor = indexFunctionAction.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+//			String key0 = new String(theKey.getData(), "UTF-8");
+//    		if(!str.equals(key0)){
+//    			return null;
+//    		}
+	    	while (found == OperationStatus.SUCCESS)  {
+				boolean match = true;
+				FunctionHead head = binding.entryToObject(data);
+				for(int i=0;i<args.size();i++) {
+					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), head.getArgumentType().get(i))) {
+						match = false;
+						break;
+					}
+				}
+				if(match) {
+					String ret = new String(key.getData(), "UTF-8");
+					return ret;
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return null;
+	}
+	
 	public FunctionHead getFunctionLinkByKey(String linkKey, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry key = new DatabaseEntry(linkKey.getBytes("UTF-8"));
@@ -3043,6 +3081,65 @@ public class HiwiiDB {
 	    int len = func.getArguments().size();
 		try {
 			cursor = indexFunctionLink.openCursor(txn, null);
+			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
+			
+	    	while (found == OperationStatus.SUCCESS)  {
+	    		String key0 = new String(theKey.getData(), "UTF-8");
+	    		if(!str.equals(key0)){
+	    			return null;
+	    		}
+				boolean match = true;
+				FunctionHead head = binding.entryToObject(data);
+				for(int i=0;i<len;i++) {
+					Expression exp = func.getArguments().get(i);
+					BinaryOperation bo = null;
+					String type = null;
+					if(exp instanceof BinaryOperation) {
+						bo = (BinaryOperation) exp;
+						if(!bo.getOperator().equals("")) {
+							throw new ApplicationException();
+						}
+						if(!(bo.getLeft() instanceof IdentifierExpression)) {
+							throw new ApplicationException();
+						}
+						IdentifierExpression ie = (IdentifierExpression) bo.getLeft();
+						type = ie.getName();
+					}else if(exp instanceof IdentifierExpression){
+//						IdentifierExpression ie = (IdentifierExpression) exp;变量名
+						type = "Object";
+					}else {						
+						throw new ApplicationException();
+					}
+					
+					if(!EntityUtil.judgeDefinitionIsAnother(type, head.getArgumentType().get(i))) {
+						match = false;
+					}
+				}
+				if(match) {
+					String ret = new String(key.getData(), "UTF-8");
+					return ret;
+				}
+	    		found = cursor.getNextDup(theKey, key, data, LockMode.DEFAULT);
+	    	}
+		}finally  {			
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return null;
+	}
+	
+	public String getFunctionActionKeyByDefine(FunctionExpression func, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		SecondaryCursor cursor = null;
+		String str = func.getName() + "#" + func.getArguments().size();
+		DatabaseEntry theKey = new DatabaseEntry(str.getBytes("UTF-8"));
+		DatabaseEntry key = new DatabaseEntry();
+	    DatabaseEntry data = new DatabaseEntry();
+	    TupleBinding<FunctionHead> binding = new FunctionHeadBinding();
+	    int len = func.getArguments().size();
+		try {
+			cursor = indexFunctionAction.openCursor(txn, null);
 			OperationStatus found = cursor.getSearchKey(theKey, key, data, LockMode.DEFAULT);
 			
 	    	while (found == OperationStatus.SUCCESS)  {
@@ -4707,7 +4804,7 @@ public class HiwiiDB {
 	
 	public void declareFunctionAction(FunctionExpression source, Expression expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKeyByDeclare(source, txn);
+		String fkey = getFunctionActionKeyByDefine(source, txn);
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
@@ -4721,12 +4818,12 @@ public class HiwiiDB {
 		dec.setArgType(EntityUtil.getFunctionArgumentType(source));
 		TupleBinding<FunctionDeclaration> dataBinding = new FunctionDeclarationBinding();
 		dataBinding.objectToEntry(dec, theData);
-		fCalculation.put(txn, theKey, theData);
+		fAction.put(txn, theKey, theData);
 	}
 	
 	public void declareFunctionAction(Definition def, FunctionExpression source, Expression expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKeyByDeclare(source, txn);
+		String fkey = getFunctionActionKeyByDefine(source, txn);
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
@@ -4741,12 +4838,12 @@ public class HiwiiDB {
 		dec.setArgType(EntityUtil.getFunctionArgumentType(source));
 		TupleBinding<FunctionDeclaration> dataBinding = new FunctionDeclarationBinding();
 		dataBinding.objectToEntry(dec, theData);
-		fCalculationDef.put(txn, theKey, theData);
+		fActionDef.put(txn, theKey, theData);
 	}
 	
 	public void declareFunctionAction_Inst(HiwiiInstance inst, FunctionExpression source, Expression expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
-		String fkey = getFunctionLinkKeyByDeclare(source, txn);
+		String fkey = getFunctionActionKeyByDefine(source, txn);
 		if(fkey == null) {
 			throw new ApplicationException();
 		}
@@ -4761,7 +4858,7 @@ public class HiwiiDB {
 		dec.setArgType(EntityUtil.getFunctionArgumentType(source));
 		TupleBinding<FunctionDeclaration> dataBinding = new FunctionDeclarationBinding();
 		dataBinding.objectToEntry(dec, theData);
-		fCalculationInst.put(txn, theKey, theData);
+		fActionInst.put(txn, theKey, theData);
 	}
 	
 //	public void putFunDecision(Definition def, FunctionDeclaration dec, Transaction txn)
@@ -4918,49 +5015,38 @@ public class HiwiiDB {
 		return null;
 	}
 	
-	public FunctionDeclaration getFunctionAction(String name, List<Entity> args, Transaction txn, HiwiiContext context)
+	public FunctionDeclaration getFunctionAction(String name, List<Entity> args, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
+		String fkey = getFunctionActionKey(name, args, txn);
+		if(fkey == null) {
+			return null;
+		}
 		SecondaryCursor cursor = null;
 		cursor = indexfAction.openCursor(null, null);
-		String key = name + "#" + args.size();
+//		String key = name + "#" + args.size();
 		
-		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theKey = new DatabaseEntry(fkey.getBytes("UTF-8"));
 		DatabaseEntry pkey = new DatabaseEntry();
 	    DatabaseEntry data = new DatabaseEntry();
 	    
 	    TupleBinding<FunctionDeclaration> binding = new FunctionDeclarationBinding();
 	    try {
 	    	OperationStatus found = cursor.getSearchKey(theKey, pkey, data, LockMode.DEFAULT);
-	    	RuntimeContext rc = null;
 	    	FunctionDeclaration fd = null;
 	    	while (found == OperationStatus.SUCCESS)  {
 	    		fd = binding.entryToObject(data);
-	    		rc = context.getLadder().newRuntimeContext('a');
-				int i = 0;
-//				for(Argument arg:fd.getArguments()){
-//					rc.getRefers().put(arg.getName(), args.get(i));
-//					i++;
-//				}				
-//				boolean state = true;
-//				for(Argument arg:fd.getArguments()){
-//					if(arg instanceof DecoratedArgument) {
-//						DecoratedArgument darg = (DecoratedArgument) arg;
-//						for(Expression expr:darg.getStates()) {
-//							Expression result = rc.doDecision(expr);
-//							if(!EntityUtil.judge(result)) {
-//								state = false;
-//								break;
-//							}
-//						}
-//					}
-//				}
-//				if(state) {
-//					return fd;
-//				}
+				boolean match = true;
+				for(int i=0;i<args.size();i++) {
+					if(!EntityUtil.judgeEntityIsDefinition(args.get(i), fd.getArguments().get(i), fd.getArgType().get(i))) {
+						match = false;
+						break;
+					}
+				}
+				if(match) {
+					return fd;
+				}
 	    		found = cursor.getNextDup(theKey, pkey, data, LockMode.DEFAULT);
 	    	}
-//	    	Entity ret = rc.doCalculation(fd.getStatement());
-	    	rc = null;  //释放内存	    	
 	    }catch(DatabaseException e) {
 	    	throw new ApplicationException();
 	    } finally  {
