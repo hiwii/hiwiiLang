@@ -293,10 +293,14 @@ public class LocalHost extends Entity{
 	}
 	
 	public SessionContext getSessionContextOfWeixin(String userId){
+		for(String key:weixins.keySet()) {
+			System.out.print("微信用户:" + key);
+		}
 		if(weixins.containsKey(userId)){
+			System.out.print("微信用户登录:" + userId);
 			return weixins.get(userId);
 		}
-		System.out.print("微信用户登录:" + userId);
+
 		SessionContext context = new SessionContext();
 		NetTerminal nt = new NetTerminal();
 		Session session = new Session();
@@ -305,12 +309,15 @@ public class LocalHost extends Entity{
 		context.setSession(session);
 		session.setContext(context);
 		session.setTerminal(nt);
-		HiwiiInstance user = new HiwiiInstance();
-		user.setClassName("WeixinUser");
-		user.setName(userId);
+//		HiwiiInstance user = new HiwiiInstance();
+//		user.setClassName("WeixinUser");
+//		user.setName(userId);
 		nt.setSession(session);
+		
+		weixins.put(userId, context);
 		//TODO 删除不访问记录
 		return context;
+		
 	}
 	
 	public SessionContext getSessionContext(String sessionId){

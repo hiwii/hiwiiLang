@@ -4838,6 +4838,7 @@ public class HiwiiContext extends Entity {
 		}
 		if(name.equals("me") || name.equals("wo") || name.equals("Œ“")){
 			if(getLadder().getSessionContext().getSession().getUser() != null){
+//				System.out.print("get User OK!");
 				User user = getLadder().getSessionContext().getSession().getUser();
 				return user;
 			}
@@ -8284,6 +8285,8 @@ public class HiwiiContext extends Entity {
 		if(!(arg1 instanceof StringExpression)){
 			return new HiwiiException();
 		}
+		
+//		System.out.print("logined begin\r\n");
 		StringExpression se = (StringExpression) arg1;
 		String password = se.getValue();
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
@@ -8302,6 +8305,7 @@ public class HiwiiContext extends Entity {
 			}
 			if(user.getPassword().equals(password)){
 				getLadder().getSessionContext().getSession().setUser(user);
+//				System.out.print("logined success!\r\n");
 				return new NormalEnd();
 			}else{
 				return new HiwiiException();
