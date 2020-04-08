@@ -8812,7 +8812,10 @@ public class HiwiiContext extends Entity {
 	
 	public Entity doDefinitionIdentifierCalculation(Definition def, String name) {
 		if(name.equals("new")) {
-			return def.doIdentifierCalculation(name);
+			HiwiiInstance inst = new HiwiiInstance();
+			inst.setClassName(def.getName());
+			return inst;
+//			return def.doIdentifierCalculation(name);
 		}
 		if(name.equals("put")) {  //add
 			//when def is real definition

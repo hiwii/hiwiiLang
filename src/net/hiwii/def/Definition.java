@@ -160,11 +160,9 @@ public class Definition extends HiwiiInstance {
 //		if(name.equals("last")) {
 //			return doGetSingleInstance();
 //		}
-		if(name.equals("new")) {
-			HiwiiInstance inst = new HiwiiInstance();
-			inst.setClassName(this.getName());
-			return inst;
-		}
+//		if(name.equals("new")) {
+//			
+//		}
 		return null;
 	}
 

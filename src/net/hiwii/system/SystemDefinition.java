@@ -40,6 +40,7 @@ public class SystemDefinition {
 		defs.put("LocalHost", new SimpleDefinition("LocalHost","L"));
 		defs.put("Object", new SimpleDefinition("Object","L.O"));//¼Ì³ÐOperation
 		defs.put("Cognition", new SimpleDefinition("Cognition","L.C"));//¼Ì³ÐOperation
+		defs.put("Exception", new SimpleDefinition("Exception","L.X"));//¼Ì³ÐOperation
 		
 		defs.put("List", new ListClass());
 		defs.put("Set", new SetClass());
