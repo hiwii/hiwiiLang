@@ -2034,8 +2034,9 @@ public class EntityUtil {
 			rec.setType('u');
 			rec.setValue(user.getUserid());
 		}else if(ent instanceof StringExpression){
+			StringExpression se = (StringExpression) ent;
 			rec.setType('s');	
-			rec.setValue(ent.toString());
+			rec.setValue(se.getValue());
 		}else{
 			rec.setType('e');	
 			rec.setValue(ent.toString());
