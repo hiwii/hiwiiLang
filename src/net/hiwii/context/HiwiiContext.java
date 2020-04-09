@@ -3307,7 +3307,10 @@ public class HiwiiContext extends Entity {
 				name.equals("LEQ") || name.equals("NE") || name.equals("EQ")){
 			if(args.size() == 2){
 				Entity left = args.get(0);
-				Entity right = args.get(1);;
+				Entity right = args.get(1);
+				if(left == null || right == null) {
+					return EntityUtil.decide(false);
+				}
 				List<Entity> ents = Arrays.asList(right);
 				return left.doFunctionDecision(name, ents);
 			}else{
