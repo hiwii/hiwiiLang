@@ -73,6 +73,10 @@ public class SystemDefinition {
 		defs.put("Group", new GroupDefinition());
 		defs.put("Role", new SimpleDefinition("Role","Role"));
 		
+		defs.put("Array", new SimpleDefinition("Array", "Array"));
+		defs.put("List", new SimpleDefinition("List", "List"));
+		defs.put("Map", new SimpleDefinition("Map","Map"));
+		
 //		defacts.put("L.C.Se|enum", "");
 		idname.put("L", "LocalHost");
 		idname.put("L.O", "Object");//¼Ì³ÐOperation
