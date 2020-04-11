@@ -2221,10 +2221,13 @@ public class HiwiiContext extends Entity {
 			if(fd != null){
 				RuntimeContext rc = getLadder().newRuntimeContext('c');
 				int i = 0;
-//				for(Argument arg:fd.getArguments()){
-//					rc.getRefers().put(arg.getName(), args.get(i));
-//				}
-				return rc.doDecision(fd.getStatement());
+				for(String vname:fd.getArguments()){
+					rc.getRefers().put(vname, args.get(i));
+					i++;
+				}
+				ret = rc.doDecision(fd.getStatement());
+				rc = null;  //ÊÍ·ÅÄÚ´æ
+				return ret;
 			}
 		} catch (DatabaseException e) {
 			return new HiwiiException();
@@ -7682,7 +7685,7 @@ public class HiwiiContext extends Entity {
 				if(type == 'c'){
 					db.putFunctionCalculation(fe, expr, null);
 				}else if(type == 'd'){
-//					db.putFunDecision(fd, null);
+					db.declareFunctionDecision(fe, expr, null);
 				}else{
 					db.declareFunctionAction(fe, expr, null);
 				}
