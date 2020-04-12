@@ -2013,30 +2013,20 @@ public class HiwiiContext extends Entity {
 			if(target != null){
 				return target;
 			}
-			
-			HiwiiInstance inst = db.getInstanceByName(name);
-			if(inst != null){
-				return inst;
+			Entity ent = db.getAssignment(name, null);
+			if(ent != null){
+				return ent;
 			}
+//			HiwiiInstance inst = db.getInstanceByName(name);
+//			if(inst != null){
+//				return inst;
+//			}
 			String str = db.getIdCalculation(name, null);
 			if(str != null){
 				Expression expr = StringUtil.parseString(str);
 				RuntimeContext rc = getLadder().newRuntimeContext('c');
 				rc.setFunction(true);
 				return rc.doCalculation(expr);
-			}
-						
-			VariableStore vs = db.getVariable(name, null);
-			if(vs != null){
-				if(vs.getValueType() == 'i'){
-					HiwiiInstance ent = db.getInstanceById(vs.getValue());
-					return ent;
-				}else{
-					//valueType = 's'
-					Expression expr = new StringExpression(vs.getValue()).toExpression();
-					Entity ent = doCalculation(expr);
-					return ent;
-				}
 			}
 		} catch (Exception e) {
 			return new HiwiiException();
@@ -2414,12 +2404,31 @@ public class HiwiiContext extends Entity {
 				}
 				return var;
 			}
-//			ret = context.doContextIdentifierDecision(name);
-//			if(ret != null){
-//				return ret;
-//			}
 		}
 
+		try {
+			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			Expression result = db.getJudgment(name, null);
+			if(result != null){
+				return result;
+			}
+			String str = db.getIdDecision(name, null);
+//			if(str != null){
+//				Expression expr = StringUtil.parseString(str);
+//				RuntimeContext rc = getLadder().newRuntimeContext('c');
+//				rc.setFunction(true);
+//				return rc.doCalculation(expr);
+//			}
+		} catch (DatabaseException e) {
+			return new HiwiiException();
+		} catch (IOException e) {
+			return new HiwiiException();
+		} catch (ApplicationException e) {
+			return new HiwiiException();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new HiwiiException();
+		}
 
 		return null;
 	}
@@ -7414,7 +7423,7 @@ public class HiwiiContext extends Entity {
 
 		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
 		try {
-			db.updateVariable(name, value, null);
+			db.putIdAssignment(name, value, null);
 		} catch (DatabaseException e) {
 			return new HiwiiException();
 		} catch (IOException e) {
@@ -7427,6 +7436,8 @@ public class HiwiiContext extends Entity {
 
 		return new NormalEnd();
 	}
+	
+	
 	
 	public Expression doAssignSilent(Expression left, Expression right){
 		Entity value = doCalculation(right);
@@ -7636,6 +7647,9 @@ public class HiwiiContext extends Entity {
 	
 	public Expression turnJudge(Expression left, Expression right){
 		Expression value = doDecision(right);
+		if(value == null){
+			return new HiwiiException();
+		}
 		if(value instanceof HiwiiException){
 			return (HiwiiException)value;
 		}
@@ -7645,9 +7659,68 @@ public class HiwiiContext extends Entity {
 			String name = ie.getName();
 			for(RuntimeContext context:this.getLadder().getChains()){
 				if(context.getBools().containsKey(name)){
-					return context.getBools().put(name, result);
+					JudgmentResult var = context.getBools().get(name);
+					if(var == null){
+						context.getBools().put(name, result);
+						return new NormalEnd();
+					}
+					var.setResult(EntityUtil.judgeResult(result));
+					return new NormalEnd();
 				}
 			}
+			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+			try {
+				db.turnIdJudgment(name, result, null);
+				return new NormalEnd();
+			} catch (DatabaseException e) {
+				return new HiwiiException();
+			} catch (IOException e) {
+				return new HiwiiException();
+			} catch (ApplicationException e) {
+				return new HiwiiException();
+			} catch (Exception e) {
+				return new HiwiiException();
+			}
+		}else if(left instanceof FunctionExpression){
+			FunctionExpression fe = (FunctionExpression) left;
+			List<Entity> objs = new ArrayList<Entity>();
+			for(Expression exp:fe.getArguments()) {
+				Entity ent = doCalculation(exp);
+				if(ent instanceof HiwiiException) {
+					return new HiwiiException();
+				}
+				objs.add(ent);
+			}
+//			HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
+//			try {
+//				db.putFunctionAssign(fe.getName(), objs, value, null);
+//				return new NormalEnd();
+//			} catch (DatabaseException e) {
+//				return new HiwiiException();
+//			} catch (IOException e) {
+//				return new HiwiiException();
+//			} catch (ApplicationException e) {
+//				return new HiwiiException();
+//			} catch (Exception e) {
+//				return new HiwiiException();
+//			}
+		}else if(left instanceof SubjectOperation){
+			SubjectOperation sv = (SubjectOperation) left;
+//			Expression sub = sv.getSubject();
+			Expression exp = sv.getAction();
+			
+			if(exp instanceof IdentifierExpression){
+				IdentifierExpression ie = (IdentifierExpression) exp;
+//				name = ie.getName();
+			}
+			
+			Entity subject = doCalculation(sv.getSubject());
+			if(subject == null){
+				return new HiwiiException();
+			}
+//			return subject.doAssign(name, value);
+		}else{
+			return new HiwiiException();
 		}
 
 		return new NormalEnd();

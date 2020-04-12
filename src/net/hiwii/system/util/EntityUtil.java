@@ -1729,14 +1729,6 @@ public class EntityUtil {
 //		}
 		return false;
 	}
-	public static Assignment proxyGetAssignment(String name)
-			throws IOException, DatabaseException, ApplicationException, Exception{
-		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
-		
-		Assignment ret = db.getAssignment(name, null);
-		
-		return ret;
-	}
 	
 	public static Assignment hasDefinitionAssignment(String name, Definition def)
 			throws IOException, DatabaseException, ApplicationException, Exception{
@@ -1797,22 +1789,6 @@ public class EntityUtil {
 		return hasDefinitionJudgment(name, def);		
 	}
 	
-	public static Entity proxyGetEntity(String name)
-			throws IOException, DatabaseException, ApplicationException, Exception{
-		HiwiiDB db = LocalHost.getInstance().getHiwiiDB();
-		
-		Assignment ass = db.getAssignment(name, null);
-		if(ass != null){
-			return ass.getValue();
-		}
-//		Reference ret = db.getProperty(name, null);
-//		if(ret == null){
-//			Entity ret = db.getInstance(name, null);
-//		}
-		
-		return null;
-	}
-
 	public static Expression proxyGetIdCalculation(String name, Definition def)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		return null;

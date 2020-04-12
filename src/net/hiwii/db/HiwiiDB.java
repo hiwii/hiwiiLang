@@ -3846,7 +3846,7 @@ public class HiwiiDB {
 		}
 	}
 	
-	public Assignment getAssignment(String key,Transaction txn)
+	public Entity getAssignment(String key,Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 	    DatabaseEntry theData = new DatabaseEntry();
@@ -3855,7 +3855,7 @@ public class HiwiiDB {
 	    if(status == OperationStatus.SUCCESS){
 	    	TupleBinding<StoredValue> dataBinding = new ValueBinding();
 	    	StoredValue rec = dataBinding.entryToObject(theData);
-	    	return EntityUtil.recordToAssignment(rec);
+	    	return EntityUtil.recordToEntity(rec);
 	    }else{ // if(status == OperationStatus.NOTFOUND)
 	    	return null;
 	    }
@@ -3871,7 +3871,7 @@ public class HiwiiDB {
 		OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			StoredValue val = binding.entryToObject(theData);
-			Entity ret = getValue(val);
+			Entity ret = EntityUtil.recordToEntity(val);
 			return ret;
 		}
 		return null;
@@ -3887,7 +3887,7 @@ public class HiwiiDB {
 		OperationStatus status = idAssign.get(null, theKey, theData, LockMode.DEFAULT);
 		if(status == OperationStatus.SUCCESS){
 			StoredValue val = binding.entryToObject(theData);
-			Entity ret = getValue(val);
+			Entity ret = EntityUtil.recordToEntity(val);
 			return ret;
 		}
 		throw new ApplicationException("null value!");
@@ -4090,6 +4090,19 @@ public class HiwiiDB {
 		}
 		
 		idState.put(txn, theKey, theData);
+	}
+	
+	public boolean hasIdLink(String key,Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+	    DatabaseEntry theData = new DatabaseEntry();
+
+	    OperationStatus status = idLink.get(null, theKey, theData, LockMode.DEFAULT);
+	    if(status == OperationStatus.SUCCESS){
+	    	return true;
+	    }else{ 
+	    	return false;
+	    }
 	}
 	
 	public boolean hasStatus(String key,Transaction txn)
@@ -4388,6 +4401,9 @@ public class HiwiiDB {
 	
 	public void putJudgment(String key, JudgmentResult jdg, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
+		if(!hasStatus(key, txn)) {
+			throw new ApplicationException("state not defined!");
+		}
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry();
 
@@ -4608,6 +4624,10 @@ public class HiwiiDB {
 	
 	public void putIdCalculation(String key, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
+		boolean boo = hasIdLink(key, txn);
+		if(!boo) {
+			throw new ApplicationException();
+		}
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
@@ -4659,6 +4679,10 @@ public class HiwiiDB {
 	
 	public void putIdDecision(String key, String expr, Transaction txn)
 			throws IOException, DatabaseException, ApplicationException, Exception{
+		boolean boo = hasStatus(key, txn);
+		if(!boo) {
+			throw new ApplicationException();
+		}
 		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 		DatabaseEntry theData = new DatabaseEntry(expr.getBytes("UTF-8"));
 
@@ -4668,6 +4692,21 @@ public class HiwiiDB {
 		}
 
 		idDecision.put(txn, theKey, theData);
+	}
+	
+	public String getIdDecision(String key, Transaction txn)
+			throws IOException, DatabaseException, ApplicationException, Exception{
+		boolean boo = hasStatus(key, txn);
+		if(!boo) {
+			throw new ApplicationException();
+		}
+		DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
+		DatabaseEntry theData = new DatabaseEntry();
+		OperationStatus status = idDecision.get(null, theKey, theData, LockMode.DEFAULT);
+		if(status == OperationStatus.SUCCESS){
+			return new String(theData.getData(), "UTF-8");
+		}
+		return null;
 	}
 	
 	public String getIdCalculation(String key, Transaction txn)
@@ -6059,7 +6098,7 @@ public class HiwiiDB {
 	    			break;
 	    		}
 	    		StoredValue val = binding.entryToObject(data);
-	    		Entity item = getValue(val);
+	    		Entity item = EntityUtil.recordToEntity(val);
 	    		list.add(item);
 	    		found = cursor.getNext(theKey, pkey, data, LockMode.DEFAULT);
 	    	}
@@ -6080,21 +6119,6 @@ public class HiwiiDB {
 	    	}
 	    }
 		return null;	
-	}
-
-	public Entity getValue(StoredValue rec) 
-			throws DatabaseException, IOException, ApplicationException, Exception{
-		if(rec.getType() == 's'){
-			Expression expr = StringUtil.parseString(rec.getValue());
-			SessionContext sc = LocalHost.getInstance().newSessionContext();
-			Entity ent = sc.doCalculation(expr);
-			return ent;
-		}else if(rec.getType() == 'i'){
-			return getInstanceById(rec.getValue());
-		}else if(rec.getType() == 'm'){
-			return getListProperty(rec.getValue(), null);
-		}
-		throw new ApplicationException();
 	}
 	
 	/************20170325
